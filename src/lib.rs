@@ -7,12 +7,12 @@ mod tests {
     #[test]
     fn test_export_tokens() {
         #[export_tokens]
-        fn _add(a: usize, b: usize) -> usize {
+        fn add_stuff(a: usize, b: usize) -> usize {
             a + b
         }
         assert_eq!(
-            SOURCE_CODE,
-            "fn _add(a : usize, b : usize) -> usize { a + b }"
+            __EXPORT_TOKENS__ADD_STUFF,
+            "fn add_stuff(a : usize, b : usize) -> usize { a + b }"
         );
     }
 }

@@ -87,7 +87,9 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     quote! {
         #[allow(dead_code)]
         #item
-        const #const_ident: &'static str = #source_code;
+        #[doc(hidden)]
+        #[allow(dead_code)]
+        pub const #const_ident: &'static str = #source_code;
     }
     .into()
 }

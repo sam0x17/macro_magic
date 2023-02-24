@@ -1,7 +1,14 @@
 extern crate proc_macro;
 use proc_macro::{Span, TokenStream};
-use quote::quote;
-use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+
+fn get_const_name(name: String) -> String {
+    format!(
+        "__EXPORT_TOKENS__{}",
+        name.replace(" ", "").replace("::", "__").to_uppercase()
+    )
+}
 
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
@@ -73,15 +80,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         }
     };
     let const_ident = Ident::new(
-        format!(
-            "__EXPORT_TOKENS__{}",
-            ident
-                .to_string()
-                .replace(" ", "")
-                .replace("::", "__")
-                .to_uppercase()
-        )
-        .as_str(),
+        get_const_name(ident.to_string()).as_str(),
         Span::call_site().into(),
     );
     let source_code = tokens.to_string();
@@ -91,4 +90,17 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         const #const_ident: &'static str = #source_code;
     }
     .into()
+}
+
+#[proc_macro]
+pub fn import_tokens(tokens: TokenStream) -> TokenStream {
+    let mut path: Path = parse_macro_input!(tokens as TypePath).path;
+    let Some(mut last) = path.segments.last_mut() else {
+        return Error::new(path.span(), "Empty paths cannot be expanded!").to_compile_error().into()
+    };
+    last.ident = Ident::new(
+        get_const_name(last.to_token_stream().to_string()).as_str(),
+        Span::call_site().into(),
+    );
+    quote!(#path).into()
 }

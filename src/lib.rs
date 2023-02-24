@@ -28,12 +28,12 @@ mod tests {
     #[test]
     fn test_import_tokens() {
         #[export_tokens]
-        fn add_stuff(a: usize, b: usize) -> usize {
-            a + b
+        fn add_stuff(c: usize, d: usize) -> usize {
+            c + d
         }
         assert_eq!(
             import_tokens!(add_stuff).to_string(),
-            "fn add_stuff (a : usize , b : usize) -> usize { a + b }"
+            "fn add_stuff (c : usize , d : usize) -> usize { c + d }"
         );
     }
 }

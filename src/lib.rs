@@ -1,5 +1,15 @@
 pub use macros::*;
 
+#[doc(hidden)]
+pub mod __private {
+    pub use syn;
+    pub use syn::__private::TokenStream2;
+}
+
+pub mod macro_magic {
+    pub use super::*;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -23,8 +33,8 @@ mod tests {
             a + b
         }
         assert_eq!(
-            import_tokens!(add_stuff),
-            "fn add_stuff(a : usize, b : usize) -> usize { a + b }"
+            import_tokens!(add_stuff).to_string(),
+            "fn add_stuff (a : usize , b : usize) -> usize { a + b }"
         );
     }
 }

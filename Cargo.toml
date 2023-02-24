@@ -11,3 +11,4 @@ authors = ["sam0x17"]
 
 [dependencies]
 macros = { version = "*", path = "./macros" }
+syn = { version = "1.0", features = ["full"] }

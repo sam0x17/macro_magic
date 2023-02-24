@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+macro_magic = { version = "*", path = "../"}
+
+[[test]]
+name = "tests"
+path = "src/tests.rs"

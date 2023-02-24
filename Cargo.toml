@@ -1,5 +1,5 @@
 [workspace]
-members = ["macros"]
+members = ["macros", "tests"]
 
 [package]
 name = "macro_magic"
@@ -12,3 +12,7 @@ authors = ["sam0x17"]
 [dependencies]
 macros = { version = "*", path = "./macros" }
 syn = { version = "1.0", features = ["full"] }
+
+[[test]]
+name = "tests"
+path = "./tests/src/tests.rs"

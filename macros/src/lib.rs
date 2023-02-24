@@ -102,5 +102,5 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
         get_const_name(last.to_token_stream().to_string()).as_str(),
         Span::call_site().into(),
     );
-    quote!(#path.parse::<macro_magic::__private::TokenStream2>().unwrap()).into()
+    quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }

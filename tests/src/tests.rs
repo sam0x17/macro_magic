@@ -3,7 +3,7 @@
 use ::macro_magic::*;
 
 #[test]
-fn test_export_tokens() {
+fn export_tokens() {
     #[export_tokens]
     fn add_stuff(a: usize, b: usize) -> usize {
         a + b
@@ -15,7 +15,7 @@ fn test_export_tokens() {
 }
 
 #[test]
-fn test_import_tokens() {
+fn import_tokens() {
     #[export_tokens]
     fn add_stuff(c: usize, d: usize) -> usize {
         c + d

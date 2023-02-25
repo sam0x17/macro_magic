@@ -6,6 +6,9 @@ name = "macro_magic"
 version = "0.1.0"
 edition = "2021"
 authors = ["sam0x17"]
+license = "MIT"
+keywords = ["macro", "macros", "proc-macro", "proc-macros", "magic"]
+categories = ["development-tools", "development-tools::procedural-macro-helpers", "rust-patterns"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

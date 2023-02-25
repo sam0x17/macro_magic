@@ -1,5 +1,5 @@
 [workspace]
-members = ["macro_helpers", "macros"]
+members = ["macros"]
 
 [package]
 name = "macro_magic"

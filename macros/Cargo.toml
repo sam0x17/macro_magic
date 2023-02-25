@@ -10,6 +10,6 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-macro_helpers = { version = "*", path = "../macro_helpers" }
+const_format = "0.2"
 quote = "1.0"
 syn = { version = "1.0", features = ["full"] }

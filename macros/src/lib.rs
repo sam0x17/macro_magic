@@ -1,7 +1,20 @@
 extern crate proc_macro;
+use const_format::formatcp;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+
+const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
+
+enum CrateType {
+    Bin,
+    Lib,
+    ProcMacro,
+}
+
+fn generate_crate(name: String, crate_type: CrateType) -> std::io::Result<()> {
+    Ok(())
+}
 
 fn get_const_name(name: String) -> String {
     format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())

@@ -11,3 +11,6 @@ proc_macro = true
 
 [dependencies]
 level1_macros = { version = "*", path = "../level1_macros" }
+macro_helpers = { version = "*", path = "../macro_helpers" }
+quote = "1.0"
+syn = { version = "1.0", features = ["full"] }

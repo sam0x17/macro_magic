@@ -1,8 +1,8 @@
 extern crate proc_macro;
 use macro_helpers::*;
 use proc_macro::{Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+use quote::quote;
+use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, TypePath};
 
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {

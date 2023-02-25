@@ -1,5 +1,5 @@
 [workspace]
-members = ["macro_helpers", "level1_macros", "level2_macros"]
+members = ["macro_helpers", "macros"]
 
 [package]
 name = "macro_magic"
@@ -14,8 +14,7 @@ categories = ["development-tools", "development-tools::procedural-macro-helpers"
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
-level1_macros = { version = "*", path = "./level1_macros" }
-level2_macros = { version = "*", path = "./level2_macros" }
+macros = { version = "*", path = "./macros" }
 
 [dev-dependencies]
 example_crate = { version = "*", path = "./tests/example_crate" }

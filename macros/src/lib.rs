@@ -32,6 +32,19 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
     Ok(path)
 }
 
+#[proc_macro]
+pub fn magic_crate_dir(tokens: TokenStream) -> TokenStream {
+    if !tokens.is_empty() {
+        return Error::new(
+            Span::call_site().into(),
+            "magic_crate_dir!() does not take any arguments",
+        )
+        .to_compile_error()
+        .into();
+    }
+    quote!(#MAGIC_CRATE_DIR).into()
+}
+
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     if !attr.is_empty() {

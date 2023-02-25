@@ -88,6 +88,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
+// Imports a `TokenStream2` representing the item at the specified path
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
@@ -95,4 +96,13 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+}
+
+/// Verbatim imports the item located at the specified path, similar to `require` in Ruby. This
+/// is different from a standard `use` statement because this expands to the code for whatever
+/// foreign item is referenced, whereas Rust's implementation of use functions differently.
+#[proc_macro]
+pub fn import(tokens: TokenStream) -> TokenStream {
+    let path = parse_macro_input!(tokens as TypePath);
+    quote!(import_tokens!(#path)).into()
 }

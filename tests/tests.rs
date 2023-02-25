@@ -59,3 +59,9 @@ example_macro2!();
 fn external_crate_proc_macro_b() {
     let _a: cool_types::Bar = 3;
 }
+
+#[test]
+fn verbatim_import() {
+    import!(example_crate::subtraction);
+    assert_eq!(subtraction(10, 3), 7);
+}

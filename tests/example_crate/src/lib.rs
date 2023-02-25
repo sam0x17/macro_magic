@@ -12,3 +12,8 @@ pub mod cool_types {
     pub type Fizz = u32;
     pub type Buzz = u64;
 }
+
+#[export_tokens]
+fn subtraction(left: i64, right: i64) -> i64 {
+    left - right
+}

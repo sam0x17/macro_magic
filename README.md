@@ -3,7 +3,7 @@
 This crate provides two powerful proc macros, `#[export_tokens]` and `import_tokens!`. When
 used in tandem, these two macros allow you to mark items in other files (and even in other
 crates, as long as you can modify the source code) for export. The tokens of these items can
-then be imported by the `import_tokens!` using the path to an item you have exported.
+then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
 ## Example
 
@@ -21,7 +21,7 @@ pub mod foo {
 ```
 
 And let's say you are writing some proc macro somewhere else, and you realize you really need
-to know what types have and have not been defined in our `bar::baz::foo` module shown above,
+to know what types have and have not been defined in the `bar::baz::foo` module shown above,
 perhaps so you can provide default values for these type aliases if they are not present.
 
 ```rust
@@ -74,10 +74,10 @@ You can apply the `#[export_tokens]` macro to any
 impls, unnamed decl macros, and use declarations. The macro takes no arguments.
 
 When you apply `#[export_tokens]` to an item, a `const` variable is generated immediately after
-the set to a `&'static str` containing the source code of the item. The `const` variable is
-hidden from docs and its name consists of the upcased item name (i.e. the ident), prefixed with
-`__EXPORT_TOKENS__`, to avoid any collisions with any legitimate constants that may have been
-defined. See the example below for a plausible expansion:
+the item and set to a `&'static str` containing the source code of the item. The `const`
+variable is hidden from docs and its name consists of the upcased item name (i.e. the ident),
+prefixed with `__EXPORT_TOKENS__`, to avoid any collisions with any legitimate constants that
+may have been defined. See the example below for a plausible expansion:
 
 ### Expansion
 

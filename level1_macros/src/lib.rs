@@ -90,13 +90,9 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
-    let mut path: Path = parse_macro_input!(tokens as TypePath).path;
-    let Some(mut last) = path.segments.last_mut() else {
-        return Error::new(path.span(), "Empty paths cannot be expanded!").to_compile_error().into()
+    let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
+        Ok(path) => path,
+        Err(e) => return e.to_compile_error().into(),
     };
-    last.ident = Ident::new(
-        get_const_name(last.to_token_stream().to_string()).as_str(),
-        Span::call_site().into(),
-    );
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }

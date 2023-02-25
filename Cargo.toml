@@ -1,5 +1,5 @@
 [workspace]
-members = ["macros", "tests"]
+members = ["macros", "tests", "tests/example_proc_macro", "tests/example_crate"]
 
 [package]
 name = "macro_magic"
@@ -16,6 +16,3 @@ categories = ["development-tools", "development-tools::procedural-macro-helpers"
 macros = { version = "*", path = "./macros" }
 syn = { version = "1.0", features = ["full"] }
 
-[[test]]
-name = "tests"
-path = "./tests/src/tests.rs"

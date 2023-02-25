@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use ::example_proc_macro::example_macro;
 use ::macro_magic::{__private::TokenStream2, *};
 use syn::{ItemConst, ItemMod, __private::ToTokens};
 
@@ -45,4 +46,11 @@ fn external_file_parsing() {
     )
     .unwrap();
     assert_eq!(item_const.ident.to_string(), "SOMETHING");
+}
+
+#[test]
+fn external_crate_proc_macro() {
+    example_macro!();
+    // add function imported via import_tokens! call in proc macro
+    assert_eq!(add2(2, 3), 5);
 }

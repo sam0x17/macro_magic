@@ -97,8 +97,11 @@ fn foo_bar(a: u32) -> u32 {
 }
 #[allow(dead_code)]
 #[doc(hidden)]
-const __EXPORT_TOKENS__FOO_BAR: &'static str = "fn foo_bar(a : u32) -> u32 { a * 2 }";
+pub const __EXPORT_TOKENS__FOO_BAR: &'static str = "fn foo_bar(a : u32) -> u32 { a * 2 }";
 ```
+
+NOTE: items marked with `#[export_tokens]` do not need to be public, however they do need to be
+in a module that is accessible from wherever you intend to call `import_tokens!`.
 
 ## `import_tokens!`
 

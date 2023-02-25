@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-[dev-dependencies]
+[dependencies]
 macro_magic = { version = "*", path = "../"}
 syn = { version = "1.0", features = ["full"] }
-
-[[test]]
-name = "tests"
-path = "src/tests.rs"
+example_proc_macro = { version = "*", path = "./example_proc_macro" }

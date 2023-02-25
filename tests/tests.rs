@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use ::example_proc_macro::example_macro;
 use ::macro_magic::{__private::TokenStream2, *};
 use syn::{ItemConst, ItemMod, __private::ToTokens};

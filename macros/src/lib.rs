@@ -4,10 +4,7 @@ use quote::{quote, ToTokens};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 fn get_const_name(name: String) -> String {
-    format!(
-        "__EXPORT_TOKENS__{}",
-        name.replace(" ", "").replace("::", "__").to_uppercase()
-    )
+    format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
 }
 
 #[proc_macro_attribute]

@@ -1,5 +1,5 @@
 [workspace]
-members = ["level1_macros"]
+members = ["level1_macros", "level2_macros"]
 
 [package]
 name = "macro_magic"
@@ -13,8 +13,9 @@ categories = ["development-tools", "development-tools::procedural-macro-helpers"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-level1_macros = { version = "*", path = "./level1_macros" }
 syn = { version = "1.0", features = ["full"] }
+level1_macros = { version = "*", path = "./level1_macros" }
+level2_macros = { version = "*", path = "./level2_macros" }
 
 [dev-dependencies]
 example_crate = { version = "*", path = "./tests/example_crate" }

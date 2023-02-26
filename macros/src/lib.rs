@@ -2,17 +2,32 @@ extern crate proc_macro;
 use const_format::formatcp;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
+use std::fs::OpenOptions;
+use std::{fs, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
 
-enum CrateType {
-    Bin,
-    Lib,
-    ProcMacro,
+fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
+    let mut f = OpenOptions::new().write(true).open(path)?;
+    f.write_all(source.into().as_bytes())?;
+    f.flush()?;
+    Ok(())
 }
 
-fn generate_crate(name: String, crate_type: CrateType) -> std::io::Result<()> {
+fn generate_crate<T: Into<String>>(name: T) -> std::io::Result<()> {
+    let path_string = format!("{}/{}", &MAGIC_CRATE_DIR, name.into());
+    let crate_dir = std::path::Path::new(path_string.as_str());
+    if !crate_dir.exists() {
+        fs::create_dir_all(crate_dir)?;
+        println!("created crate_dir in {}", crate_dir.to_str().unwrap());
+    } else {
+        println!(
+            "crate_dir already exists at {}",
+            crate_dir.to_str().unwrap()
+        );
+    }
+
     Ok(())
 }
 
@@ -146,4 +161,9 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 pub fn import(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
     quote!(import_tokens!(#path)).into()
+}
+
+#[test]
+fn test_generate_crate() {
+    generate_crate("cool_crate").unwrap();
 }

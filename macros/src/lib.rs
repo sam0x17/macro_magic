@@ -7,6 +7,7 @@ use std::{fs, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
+const LOCAL_CRATE_DIR: &'static str = env!("CARGO_MANIFEST_DIR");
 
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
@@ -16,18 +17,39 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
 }
 
 fn generate_crate<T: Into<String>>(name: T) -> std::io::Result<()> {
-    let path_string = format!("{}/{}", &MAGIC_CRATE_DIR, name.into());
-    let crate_dir = std::path::Path::new(path_string.as_str());
-    if !crate_dir.exists() {
-        fs::create_dir_all(crate_dir)?;
-        println!("created crate_dir in {}", crate_dir.to_str().unwrap());
-    } else {
+    use std::path::Path;
+
+    println!("{}", LOCAL_CRATE_DIR);
+    let name = name.into();
+    let path_string = format!("{}/{}", &MAGIC_CRATE_DIR, name);
+    let crate_dir = Path::new(path_string.as_str());
+    if crate_dir.exists() {
         println!(
-            "crate_dir already exists at {}",
+            "crate_dir already exists at {}, clearing...",
             crate_dir.to_str().unwrap()
         );
+        fs::remove_dir_all(crate_dir)?;
+        fs::create_dir(crate_dir)?;
+    } else {
+        fs::create_dir_all(crate_dir)?;
+        println!("created crate_dir in {}", crate_dir.to_str().unwrap());
     }
-
+    let src_dir = crate_dir.join(Path::new("src"));
+    fs::create_dir(src_dir)?;
+    let cargo_toml_path = crate_dir.join(Path::new("Cargo.toml"));
+    write_file(
+        &cargo_toml_path,
+        format!(
+            "[package]
+             name = \"{}\"
+             verison = \"0.1.0\"
+             edition = \"2021\"
+             
+             [dependencies]
+             ",
+            name,
+        ),
+    )?;
     Ok(())
 }
 

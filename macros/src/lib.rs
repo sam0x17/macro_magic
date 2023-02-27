@@ -9,9 +9,12 @@ use std::{fs, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
+#[allow(unused)]
 const LOCAL_CRATE_DIR: &'static str = env!("CARGO_MANIFEST_DIR");
+#[allow(unused)]
 const WATCHER_CRATE_PATH: &'static str = "../token_watcher";
 
+#[allow(unused)]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     println!("opening {} for writing...", path.to_str().unwrap());
     let mut f = OpenOptions::new().write(true).create(true).open(path)?;
@@ -27,7 +30,7 @@ struct CrateReference {
     name: String,                      // "my-crate"
     access_name: String,               // "my_crate"
     path: String,                      // "/home/sam/workspace/my-crate"
-    referenced_items: HashSet<String>, // HashSet::from(["my_crate::some::item", "my_crate::some_other::item"])
+    referenced_items: HashSet<String>, // HashSet::from([String::from("my_crate::some::item"), String::from("my_crate::some_other::item")])
 }
 
 impl Hash for CrateReference {
@@ -39,7 +42,8 @@ impl Hash for CrateReference {
     }
 }
 
-fn generate_crate(refs: HashSet<CrateReference>) -> std::io::Result<()> {
+#[allow(unused)]
+fn generate_crate(refs: &HashSet<CrateReference>) -> std::io::Result<()> {
     use std::path::Path;
 
     let crate_dir = Path::new(&WATCHER_CRATE_PATH);
@@ -59,9 +63,15 @@ fn generate_crate(refs: HashSet<CrateReference>) -> std::io::Result<()> {
              name = \"token_watcher\"\n\
              version = \"0.1.0\"\n\
              edition = \"2021\"\n\
+             publish = false\n\
              \n\
              [dependencies]\n\
-             "
+             {}\n\
+            ",
+            refs.iter()
+                .map(|r| format!("{} = {{ version = \"*\", path = \"{}\" }}", r.name, r.path))
+                .collect::<Vec<_>>()
+                .join("\n")
         ),
     )?;
     let lib_rs_path = src_dir.join(Path::new("lib.rs"));
@@ -203,5 +213,15 @@ pub fn import(tokens: TokenStream) -> TokenStream {
 
 #[test]
 fn test_generate_crate() {
-    generate_crate(HashSet::new()).unwrap();
+    //let reference = CrateReference { name: "example_crate", access_name: , path: (), referenced_items: () };
+    generate_crate(&HashSet::from([CrateReference {
+        name: String::from("example_crate2"),
+        access_name: String::from("example_crate2"),
+        path: String::from("../tests/example_crate2"),
+        referenced_items: HashSet::from([
+            String::from("example_crate2::mult"),
+            String::from("example_crate2::div"),
+        ]),
+    }]))
+    .unwrap();
 }

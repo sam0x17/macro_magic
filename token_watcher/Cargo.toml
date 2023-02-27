@@ -2,5 +2,7 @@
 name = "token_watcher"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
+example_crate2 = { version = "*", path = "../tests/example_crate2" }

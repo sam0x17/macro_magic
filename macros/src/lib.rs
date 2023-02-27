@@ -2,54 +2,70 @@ extern crate proc_macro;
 use const_format::formatcp;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
+use std::collections::HashSet;
 use std::fs::OpenOptions;
+use std::hash::Hash;
 use std::{fs, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
 const LOCAL_CRATE_DIR: &'static str = env!("CARGO_MANIFEST_DIR");
+const WATCHER_CRATE_PATH: &'static str = "../token_watcher";
 
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
-    let mut f = OpenOptions::new().write(true).open(path)?;
+    println!("opening {} for writing...", path.to_str().unwrap());
+    let mut f = OpenOptions::new().write(true).create(true).open(path)?;
+    println!("writing data...");
     f.write_all(source.into().as_bytes())?;
+    println!("wrote data. Flushing..");
     f.flush()?;
     Ok(())
 }
 
-fn generate_crate<T: Into<String>>(name: T) -> std::io::Result<()> {
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct CrateReference {
+    name: String,                      // "my-crate"
+    access_name: String,               // "my_crate"
+    path: String,                      // "/home/sam/workspace/my-crate"
+    referenced_items: HashSet<String>, // HashSet::from(["my_crate::some::item", "my_crate::some_other::item"])
+}
+
+impl Hash for CrateReference {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.access_name.hash(state);
+        self.path.hash(state);
+        // note: skipping referenced_items
+    }
+}
+
+fn generate_crate(refs: HashSet<CrateReference>) -> std::io::Result<()> {
     use std::path::Path;
 
-    println!("{}", LOCAL_CRATE_DIR);
-    let name = name.into();
-    let path_string = format!("{}/{}", &MAGIC_CRATE_DIR, name);
-    let crate_dir = Path::new(path_string.as_str());
+    let crate_dir = Path::new(&WATCHER_CRATE_PATH);
     if crate_dir.exists() {
-        println!(
-            "crate_dir already exists at {}, clearing...",
-            crate_dir.to_str().unwrap()
-        );
         fs::remove_dir_all(crate_dir)?;
         fs::create_dir(crate_dir)?;
     } else {
         fs::create_dir_all(crate_dir)?;
-        println!("created crate_dir in {}", crate_dir.to_str().unwrap());
     }
     let src_dir = crate_dir.join(Path::new("src"));
-    fs::create_dir(src_dir)?;
+    fs::create_dir(src_dir.clone())?;
     let cargo_toml_path = crate_dir.join(Path::new("Cargo.toml"));
     write_file(
         &cargo_toml_path,
         format!(
-            "[package]
-             name = \"{}\"
-             verison = \"0.1.0\"
-             edition = \"2021\"
-             
-             [dependencies]
-             ",
-            name,
+            "[package]\n\
+             name = \"token_watcher\"\n\
+             version = \"0.1.0\"\n\
+             edition = \"2021\"\n\
+             \n\
+             [dependencies]\n\
+             "
         ),
     )?;
+    let lib_rs_path = src_dir.join(Path::new("lib.rs"));
+    write_file(&lib_rs_path, "")?;
     Ok(())
 }
 
@@ -187,5 +203,5 @@ pub fn import(tokens: TokenStream) -> TokenStream {
 
 #[test]
 fn test_generate_crate() {
-    generate_crate("cool_crate").unwrap();
+    generate_crate(HashSet::new()).unwrap();
 }

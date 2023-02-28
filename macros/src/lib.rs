@@ -66,7 +66,7 @@ fn generate_crate(refs: &HashSet<CrateReference>) -> std::io::Result<()> {
              publish = false\n\
              \n\
              [dependencies]\n\
-             macro_magic = {{ version = \"*\", path = \"../\" }}
+             macro_magic = {{ version = \"*\", path = \"../\" }}\n\
              {}\n\
             ",
             refs.iter()

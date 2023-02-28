@@ -6,4 +6,4 @@ publish = false
 
 [dependencies]
 macro_magic = { version = "*", path = "../" }
-             example_crate2 = { version = "*", path = "../tests/example_crate2" }
+example_crate2 = { version = "*", path = "../tests/example_crate2" }

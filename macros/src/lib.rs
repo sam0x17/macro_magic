@@ -66,6 +66,7 @@ fn generate_crate(refs: &HashSet<CrateReference>) -> std::io::Result<()> {
              publish = false\n\
              \n\
              [dependencies]\n\
+             macro_magic = {{ version = \"*\", path = \"../\" }}
              {}\n\
             ",
             refs.iter()
@@ -75,7 +76,19 @@ fn generate_crate(refs: &HashSet<CrateReference>) -> std::io::Result<()> {
         ),
     )?;
     let lib_rs_path = src_dir.join(Path::new("lib.rs"));
-    write_file(&lib_rs_path, "")?;
+    write_file(
+        &lib_rs_path,
+        format!(
+            "// auto-generated -- do not edit manually\nuse macro_magic::pub_use_src_const;\n{}\n",
+            refs.iter()
+                .flat_map(|r| r.referenced_items.iter().cloned())
+                .map(|item| format!("pub_use_src_const!({});", item))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+    )?;
+    let rustfmt_toml_path = crate_dir.join(Path::new("rustfmt.toml"));
+    write_file(&rustfmt_toml_path, "ignore = [\"src/lib.rs\"]");
     Ok(())
 }
 
@@ -200,6 +213,20 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+}
+
+#[doc(hidden)]
+#[proc_macro]
+pub fn pub_use_src_const(tokens: TokenStream) -> TokenStream {
+    let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
+        Ok(path) => path,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    quote! {
+        #[doc(hidden)]
+        pub use #path;
+    }
+    .into()
 }
 
 /// Verbatim imports the item located at the specified path, similar to `require` in Ruby. This

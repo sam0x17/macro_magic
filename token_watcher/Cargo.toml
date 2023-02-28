@@ -5,4 +5,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
-example_crate2 = { version = "*", path = "../tests/example_crate2" }
+macro_magic = { version = "*", path = "../" }
+             example_crate2 = { version = "*", path = "../tests/example_crate2" }

@@ -61,6 +61,12 @@ fn external_crate_proc_macro_b() {
 }
 
 #[test]
+fn external_crate_proc_macro_token_watcher() {
+    example_macro3!();
+    assert_eq!(mult(4, 5), 20);
+}
+
+#[test]
 fn verbatim_import() {
     println!("{}", import!(example_crate::subtraction));
     //assert_eq!(subtraction(10, 3), 7);

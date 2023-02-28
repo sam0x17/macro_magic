@@ -1,5 +1,5 @@
 [workspace]
-members = ["macros"]
+members = ["macros",  "token_watcher"]
 
 [package]
 name = "macro_magic"

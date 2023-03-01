@@ -6,7 +6,6 @@ use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePat
 
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
-#[allow(unused)]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     let mut f = OpenOptions::new().write(true).create(true).open(path)?;
     f.write_all(source.into().as_bytes())?;
@@ -30,6 +29,47 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
     Ok(path)
 }
 
+/// The `#[export_tokens]` attribute can be attached to any [`syn::Item`]-compatible source
+/// code item, with the exception of [`Item::ForeignMod`], [`Item::Impl`], [`Item::Macro`],
+/// [`Item::Use`], and [`Item::Verbatim`]. Attaching to an item will "export" that item so that
+/// it can be imported elsewhere by name via the [`import_tokens!`] macro.
+///
+/// For example, this would export a function named `foo`:
+/// ```ignore
+/// use macro_magic::export_tokens;
+///
+/// #[export_tokens]
+/// fn foo(a: i64, b: i64) -> i64 {
+///     a * a + b * b
+/// }
+/// ```
+///
+/// and this would export a module named `bar`:
+/// ```ignore
+/// use macro_magic::export_tokens;
+///
+/// #[export_tokens]
+/// mod bar {
+///     // ...
+/// }
+/// ```
+///
+/// You can also specify a path as an argument to `#[export_tokens]` as follows:
+/// ```ignore
+/// use macro_magic::export_tokens;
+///
+/// #[export_tokens(foo::bar::fizz_buzz)]
+/// fn fizz_buzz() {
+///     // ...
+/// }
+/// ```
+///
+/// This path will be used to disambiguate `fizz_buzz` from other `fizz_buzz` items that may
+/// have been exported from different paths when you use [`import_tokens!`] to perform an
+/// indirect import. Direct imports only make use of the last segment of this name, if it is
+/// specified, while indirect imports will use the whole path.
+///
+/// See the documentation for [`import_tokens!`] for more information and a full example.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let tmp = tokens.clone();
@@ -120,7 +160,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-// Imports a `TokenStream2` representing the item at the specified path
+// Expands to a `TokenStream2` representing the tokens of the item at the specified path
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
@@ -141,9 +181,8 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
-#[doc(hidden)]
 #[proc_macro]
-pub fn pub_use_src_const(tokens: TokenStream) -> TokenStream {
+pub fn rexport_tokens_const(tokens: TokenStream) -> TokenStream {
     let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
         Ok(path) => path,
         Err(e) => return e.to_compile_error().into(),

@@ -12,4 +12,3 @@ proc-macro = true
 [dependencies]
 macro_magic = { version = "*", path = "../../" }
 example_crate = { version = "*", path = "../example_crate" }
-token_watcher = { version = "*", path = "../../token_watcher" }

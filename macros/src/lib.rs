@@ -1,85 +1,16 @@
 extern crate proc_macro;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::{collections::HashSet, fs, fs::read_to_string, fs::OpenOptions, hash::Hash, io::Write};
+use std::{fs::read_to_string, fs::OpenOptions, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const REFS_DIR: &'static str = env!("REFS_DIR");
-#[allow(unused)]
-const WATCHER_CRATE_PATH: &'static str = "../token_watcher";
 
 #[allow(unused)]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     let mut f = OpenOptions::new().write(true).create(true).open(path)?;
     f.write_all(source.into().as_bytes())?;
     f.flush()?;
-    Ok(())
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-struct CrateReference {
-    name: String,                      // "my-crate"
-    access_name: String,               // "my_crate"
-    path: String,                      // "/home/sam/workspace/my-crate"
-    referenced_items: HashSet<String>, // HashSet::from([String::from("my_crate::some::item"), String::from("my_crate::some_other::item")])
-}
-
-impl Hash for CrateReference {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.access_name.hash(state);
-        self.path.hash(state);
-        // note: skipping referenced_items
-    }
-}
-
-#[allow(unused)]
-fn generate_crate(refs: &HashSet<CrateReference>) -> std::io::Result<()> {
-    use std::path::Path;
-
-    let crate_dir = Path::new(&WATCHER_CRATE_PATH);
-    if crate_dir.exists() {
-        fs::remove_dir_all(crate_dir)?;
-        fs::create_dir(crate_dir)?;
-    } else {
-        fs::create_dir_all(crate_dir)?;
-    }
-    let src_dir = crate_dir.join(Path::new("src"));
-    fs::create_dir(src_dir.clone())?;
-    let cargo_toml_path = crate_dir.join(Path::new("Cargo.toml"));
-    write_file(
-        &cargo_toml_path,
-        format!(
-            "[package]\n\
-             name = \"token_watcher\"\n\
-             version = \"0.1.0\"\n\
-             edition = \"2021\"\n\
-             publish = false\n\
-             \n\
-             [dependencies]\n\
-             macro_magic = {{ version = \"*\", path = \"../\" }}\n\
-             {}\n\
-            ",
-            refs.iter()
-                .map(|r| format!("{} = {{ version = \"*\", path = \"{}\" }}", r.name, r.path))
-                .collect::<Vec<_>>()
-                .join("\n")
-        ),
-    )?;
-    let lib_rs_path = src_dir.join(Path::new("lib.rs"));
-    write_file(
-        &lib_rs_path,
-        format!(
-            "// auto-generated -- do not edit manually\nuse macro_magic::pub_use_src_const;\n{}\n",
-            refs.iter()
-                .flat_map(|r| r.referenced_items.iter().cloned())
-                .map(|item| format!("pub_use_src_const!({});", item))
-                .collect::<Vec<_>>()
-                .join("\n")
-        ),
-    )?;
-    let rustfmt_toml_path = crate_dir.join(Path::new("rustfmt.toml"));
-    write_file(&rustfmt_toml_path, "ignore = [\"src/lib.rs\"]");
     Ok(())
 }
 
@@ -231,19 +162,4 @@ pub fn pub_use_src_const(tokens: TokenStream) -> TokenStream {
 pub fn import(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
     quote!(import_tokens!(#path)).into()
-}
-
-#[test]
-fn test_generate_crate() {
-    //let reference = CrateReference { name: "example_crate", access_name: , path: (), referenced_items: () };
-    generate_crate(&HashSet::from([CrateReference {
-        name: String::from("example_crate2"),
-        access_name: String::from("example_crate2"),
-        path: String::from("../tests/example_crate2"),
-        referenced_items: HashSet::from([
-            String::from("example_crate2::mult"),
-            String::from("example_crate2::div"),
-        ]),
-    }]))
-    .unwrap();
 }

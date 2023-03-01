@@ -1,7 +1,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 
-use macro_magic::import_tokens;
+use macro_magic::{import_external_tokens, import_tokens};
 
 #[proc_macro]
 pub fn example_macro(_tokens: TokenStream) -> TokenStream {
@@ -15,5 +15,5 @@ pub fn example_macro2(_tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn example_macro3(_tokens: TokenStream) -> TokenStream {
-    import_tokens!(token_watcher::mult).into()
+    import_external_tokens!(example_crate2::mult).into()
 }

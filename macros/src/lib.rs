@@ -1,10 +1,7 @@
 extern crate proc_macro;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::collections::HashSet;
-use std::fs::OpenOptions;
-use std::hash::Hash;
-use std::{fs, io::Write};
+use std::{collections::HashSet, fs, fs::read_to_string, fs::OpenOptions, hash::Hash, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const REFS_DIR: &'static str = env!("REFS_DIR");
@@ -13,11 +10,8 @@ const WATCHER_CRATE_PATH: &'static str = "../token_watcher";
 
 #[allow(unused)]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
-    println!("opening {} for writing...", path.to_str().unwrap());
     let mut f = OpenOptions::new().write(true).create(true).open(path)?;
-    println!("writing data...");
     f.write_all(source.into().as_bytes())?;
-    println!("wrote data. Flushing..");
     f.flush()?;
     Ok(())
 }
@@ -107,14 +101,6 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    if !attr.is_empty() {
-        return Error::new(
-            Span::call_site().into(),
-            "#[export_tokens] does not take any arguments",
-        )
-        .to_compile_error()
-        .into();
-    }
     let tmp = tokens.clone();
     let item: Item = parse_macro_input!(tmp as Item);
     let ident = match item.clone() {
@@ -181,7 +167,18 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     use std::path::Path;
     let refs_dir = Path::new(REFS_DIR);
     assert!(refs_dir.exists());
-    //write_file(&refs_dir.join(Path::new(&format!(""))), &source_code).unwrap(); // do error handling
+
+    if !attr.is_empty() {
+        let export_path = parse_macro_input!(attr as TypePath);
+        let fname = export_path
+            .path
+            .to_token_stream()
+            .to_string()
+            .replace("::", "-")
+            .replace(" ", "");
+        write_file(&refs_dir.join(fname), &source_code).unwrap();
+        // do error handling
+    }
     quote! {
         #[allow(dead_code)]
         #item
@@ -200,6 +197,19 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+}
+
+#[proc_macro]
+pub fn import_external_tokens(tokens: TokenStream) -> TokenStream {
+    let tpath = parse_macro_input!(tokens as TypePath);
+    let fname = tpath
+        .to_token_stream()
+        .to_string()
+        .replace("::", "-")
+        .replace(" ", "");
+    let fpath = std::path::Path::new(REFS_DIR).join(fname);
+    let source = read_to_string(fpath).unwrap();
+    quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
 #[doc(hidden)]

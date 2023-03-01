@@ -1,6 +1,6 @@
 use macro_magic::export_tokens;
 
-#[export_tokens]
+#[export_tokens(example_crate2::mult)]
 fn mult(a: i32, b: i32) -> i32 {
     a * b
 }

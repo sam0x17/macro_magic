@@ -17,3 +17,13 @@ pub mod cool_types {
 fn subtraction(left: i64, right: i64) -> i64 {
     left - right
 }
+
+pub mod cool_module {
+    use macro_magic::*;
+
+    #[export_tokens]
+    trait MyTrait {
+        fn some_behavior() -> String;
+        type SomeType;
+    }
+}

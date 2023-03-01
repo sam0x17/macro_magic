@@ -69,6 +69,10 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 /// indirect import. Direct imports only make use of the last segment of this name, if it is
 /// specified, while indirect imports will use the whole path.
 ///
+/// Also note that direct imports are subject to visibility restrictions (i.e. they won't work
+/// if you aren't in a public module), whereas indirect imports completely bypass visibility
+/// restrictions because of how they are implemented internally.
+///
 /// See the documentation for [`import_tokens!`] for more information and a full example.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
@@ -181,8 +185,80 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
+/// This convenient macro can be used to publicly re-export an item that has been exported via
+/// [`export_tokens`] when doing direct imports. See the documentation for [`export_tokens`]
+/// and [`import_tokens!`] for more information.
+///
+/// For example, assume in the module `my::cool_module` you have the following code:
+/// ```ignore
+/// pub mod cool_module {
+///     use macro_magic::*;
+///
+///     #[export_tokens]
+///     trait MyTrait {
+///         fn some_behavior() -> String;
+///         type SomeType;
+///     }
+/// }
+/// ```
+///
+/// In another module or crate that has `my::cool_module` as a dependency, you could then do
+/// something like this:
+/// ```ignore
+/// use macro_magic::re_export_tokens_const;
+///
+/// re_export_tokens_const!(my::cool_module::MyTrait);
+/// ```
+///
+/// Now the `MyTrait` tokens will be available from the context where you called
+/// `re_export_tokens_const` and can be accessed using direct imports via [`import_tokens!`],
+/// for example if the re-export module/crate was called `other_crate::re_exports`, you could
+/// then add that as a dependency to another crate and import the `my_item` tokens from that
+/// crate like so:
+///
+/// ```ignore
+/// use macro_magic::import_tokens;
+/// use other_crate::re_exports::*; // this brings the re-exports into scope
+/// use proc_macro2::TokenStream as TokenStream2;
+///
+/// #[proc_macro]
+/// pub fn my_proc_macro(_tokens: TokenStream) -> TokenStream {
+///     // ...
+///
+///     let my_trait_tokens: TokenStream2 = import_tokens!(MyTrait);
+///
+///     // can also do it this way if we wanted to avoid the `use` statement above:
+///     let my_trait_tokens: TokenStream2 = import_tokens!(other_crate::re_exports::MyTrait);
+///
+///     // ...
+///
+///     my_item_tokens.into()
+/// }
+/// ```
+///
+/// So in other words, this is just a way of cleanly re-exporting the internal token constants that are
+/// created by [`export_tokens`] to make them accessible elsewhere.
+///
+/// ## Expansion
+///
+/// This code:
+/// ```ignore
+/// use macro_magic::re_export_tokens_const;
+///
+/// re_export_tokens_const!(my::cool_module::MyTrait);
+/// ```
+///
+/// Would expand to the following:
+/// ```ignore
+/// use macro_magic::re_export_tokens_const;
+/// #[doc(hidden)]
+/// pub use example_crate::cool_module::__EXPORT_TOKENS__MYTRAIT;
+/// ```
+///
+/// Notice that the actual item under the hood is a `const`.
+/// &'static str`.
 #[proc_macro]
-pub fn rexport_tokens_const(tokens: TokenStream) -> TokenStream {
+pub fn re_export_tokens_const(tokens: TokenStream) -> TokenStream {
     let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
         Ok(path) => path,
         Err(e) => return e.to_compile_error().into(),

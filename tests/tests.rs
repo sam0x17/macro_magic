@@ -3,6 +3,7 @@ use ::macro_magic::{__private::TokenStream2, *};
 use syn::{ItemConst, ItemMod, __private::ToTokens};
 
 mod other_file;
+mod re_exports;
 
 #[test]
 fn export_tokens_basic() {
@@ -64,4 +65,11 @@ fn external_crate_via_import_trait() {
 fn external_crate_via_refs_dir_fn() {
     example_macro3!();
     assert_eq!(mult(4, 5), 20);
+}
+
+#[test]
+fn re_exports() {
+    let tokens = import_tokens!(re_exports::MyTrait);
+    assert!(!tokens.is_empty());
+    assert!(tokens.to_string().contains("trait MyTrait"));
 }

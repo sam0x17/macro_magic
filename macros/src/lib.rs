@@ -154,12 +154,3 @@ pub fn pub_use_src_const(tokens: TokenStream) -> TokenStream {
     }
     .into()
 }
-
-/// Verbatim imports the item located at the specified path, similar to `require` in Ruby. This
-/// is different from a standard `use` statement because this expands to the code for whatever
-/// foreign item is referenced, whereas Rust's implementation of use functions differently.
-#[proc_macro]
-pub fn import(tokens: TokenStream) -> TokenStream {
-    let path = parse_macro_input!(tokens as TypePath);
-    quote!(import_tokens!(#path)).into()
-}

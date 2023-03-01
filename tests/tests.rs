@@ -5,7 +5,7 @@ use syn::{ItemConst, ItemMod, __private::ToTokens};
 mod other_file;
 
 #[test]
-fn export_tokens() {
+fn export_tokens_basic() {
     #[export_tokens]
     fn add_stuff(a: usize, b: usize) -> usize {
         a + b
@@ -17,7 +17,7 @@ fn export_tokens() {
 }
 
 #[test]
-fn import_tokens() {
+fn import_tokens_basic() {
     #[export_tokens]
     fn add_stuff(c: usize, d: usize) -> usize {
         c + d
@@ -47,7 +47,7 @@ fn external_file_parsing() {
 }
 
 #[test]
-fn external_crate_proc_macro_a() {
+fn external_crate_via_import_function() {
     example_macro!();
     // add function imported via import_tokens! call in proc macro
     assert_eq!(add2(2, 3), 5);
@@ -56,18 +56,12 @@ fn external_crate_proc_macro_a() {
 example_macro2!();
 
 #[test]
-fn external_crate_proc_macro_b() {
+fn external_crate_via_import_trait() {
     let _a: cool_types::Bar = 3;
 }
 
 #[test]
-fn external_crate_proc_macro_token_watcher() {
+fn external_crate_via_refs_dir_fn() {
     example_macro3!();
     assert_eq!(mult(4, 5), 20);
-}
-
-#[test]
-fn verbatim_import() {
-    println!("{}", import!(example_crate::subtraction));
-    //assert_eq!(subtraction(10, 3), 7);
 }

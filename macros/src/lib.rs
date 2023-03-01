@@ -73,7 +73,29 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 /// if you aren't in a public module), whereas indirect imports completely bypass visibility
 /// restrictions because of how they are implemented internally.
 ///
-/// See the documentation for [`import_tokens!`] for more information and a full example.
+/// ## Expansion
+///
+/// ```rust
+/// #[export_tokens]
+/// fn foo_bar(a: u32) -> u32 {
+///     a * 2
+/// }
+/// ```
+///
+/// expands to:
+///
+/// ```rust
+/// #[allow(dead_code)]
+/// fn foo_bar(a: u32) -> u32 {
+///     a * 2
+/// }
+/// #[allow(dead_code)]
+/// #[doc(hidden)]
+/// pub const __EXPORT_TOKENS__FOO_BAR: &'static str = "fn foo_bar(a : u32) -> u32 { a * 2 }";
+/// ```
+///
+/// See the documentation for [`import_tokens!`] for more information and a full example of
+/// exporting and importing tokens. README.md also contains valuable information.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let tmp = tokens.clone();
@@ -255,8 +277,7 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// pub use example_crate::cool_module::__EXPORT_TOKENS__MYTRAIT;
 /// ```
 ///
-/// Notice that the actual item under the hood is a `const`.
-/// &'static str`.
+/// Notice that the actual item under the hood is a `const`. &'static str`.
 #[proc_macro]
 pub fn re_export_tokens_const(tokens: TokenStream) -> TokenStream {
     let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {

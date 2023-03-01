@@ -71,13 +71,28 @@ pub fn my_macro(tokens: TokenStream) -> TokenStream {
 
 You can apply the `#[export_tokens]` macro to any
 [Item](https://docs.rs/syn/latest/syn/enum.Item.html), with the exception of foreign modules,
-impls, unnamed decl macros, and use declarations. The macro takes no arguments.
+impls, unnamed decl macros, and use declarations.
 
 When you apply `#[export_tokens]` to an item, a `const` variable is generated immediately after
 the item and set to a `&'static str` containing the source code of the item. The `const`
 variable is hidden from docs and its name consists of the upcased item name (i.e. the ident),
 prefixed with `__EXPORT_TOKENS__`, to avoid any collisions with any legitimate constants that
-may have been defined. See the example below for a plausible expansion:
+may have been defined.
+
+This allows the tokens for the item to be imported using the `import_tokens!` macro.
+
+Optionally, you may specify a disambiguation path for the item as an argument to the macro,
+such as:
+
+```rust
+#[export_tokens(my::cool::ItemName)]
+fn my_item () {
+    // ...
+}
+```
+
+Any valid `syn::TypePath`-compatible item is acceptable as input for `#[export_tokens]` and
+this input is optional.
 
 ### Expansion
 
@@ -88,7 +103,7 @@ fn foo_bar(a: u32) -> u32 {
 }
 ```
 
-would roughly expand to:
+expands to:
 
 ```rust
 #[allow(dead_code)]

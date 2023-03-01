@@ -71,8 +71,3 @@ fn verbatim_import() {
     println!("{}", import!(example_crate::subtraction));
     //assert_eq!(subtraction(10, 3), 7);
 }
-
-#[test]
-fn magic_crate_dir_macro() {
-    assert!(magic_crate_dir!().ends_with("/__magic_crate"));
-}

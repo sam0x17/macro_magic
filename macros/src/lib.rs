@@ -1,5 +1,4 @@
 extern crate proc_macro;
-use const_format::formatcp;
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::collections::HashSet;
@@ -8,9 +7,7 @@ use std::hash::Hash;
 use std::{fs, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
-const MAGIC_CRATE_DIR: &'static str = formatcp!("{}/__magic_crate", env!("MACRO_OUT_DIR"));
-#[allow(unused)]
-const LOCAL_CRATE_DIR: &'static str = env!("CARGO_MANIFEST_DIR");
+const REFS_DIR: &'static str = env!("REFS_DIR");
 #[allow(unused)]
 const WATCHER_CRATE_PATH: &'static str = "../token_watcher";
 
@@ -108,19 +105,6 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
     Ok(path)
 }
 
-#[proc_macro]
-pub fn magic_crate_dir(tokens: TokenStream) -> TokenStream {
-    if !tokens.is_empty() {
-        return Error::new(
-            Span::call_site().into(),
-            "magic_crate_dir!() does not take any arguments",
-        )
-        .to_compile_error()
-        .into();
-    }
-    quote!(#MAGIC_CRATE_DIR).into()
-}
-
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     if !attr.is_empty() {
@@ -190,11 +174,14 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
             .into()
         }
     };
-    let const_ident = Ident::new(
-        get_const_name(ident.to_string()).as_str(),
-        Span::call_site().into(),
-    );
+    let const_name = get_const_name(ident.to_string());
+    let const_ident = Ident::new(const_name.as_str(), Span::call_site().into());
     let source_code = tokens.to_string();
+
+    use std::path::Path;
+    let refs_dir = Path::new(REFS_DIR);
+    assert!(refs_dir.exists());
+    //write_file(&refs_dir.join(Path::new(&format!(""))), &source_code).unwrap(); // do error handling
     quote! {
         #[allow(dead_code)]
         #item

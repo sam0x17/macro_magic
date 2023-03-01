@@ -192,24 +192,22 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 // Imports a `TokenStream2` representing the item at the specified path
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
-    let path = match get_const_path(&parse_macro_input!(tokens as TypePath)) {
-        Ok(path) => path,
-        Err(e) => return e.to_compile_error().into(),
-    };
-    quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
-}
-
-#[proc_macro]
-pub fn import_external_tokens(tokens: TokenStream) -> TokenStream {
-    let tpath = parse_macro_input!(tokens as TypePath);
-    let fname = tpath
+    let path = parse_macro_input!(tokens as TypePath);
+    let fname = path
         .to_token_stream()
         .to_string()
         .replace("::", "-")
         .replace(" ", "");
     let fpath = std::path::Path::new(REFS_DIR).join(fname);
-    let source = read_to_string(fpath).unwrap();
-    quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+    if let Ok(source) = read_to_string(fpath) {
+        return quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into();
+    }
+
+    let path = match get_const_path(&path) {
+        Ok(path) => path,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
 #[doc(hidden)]

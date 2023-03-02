@@ -19,6 +19,13 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
     Ok(())
 }
 
+fn sanitize_name(name: String) -> String {
+    name.replace("::", "-")
+        .replace("<", "_LT_")
+        .replace(">", "_GT_")
+        .replace(" ", "")
+}
+
 fn get_const_name(name: String) -> String {
     format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
 }
@@ -173,14 +180,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
     if !attr.is_empty() {
         let export_path = parse_macro_input!(attr as TypePath);
-        let fname = export_path
-            .path
-            .to_token_stream()
-            .to_string()
-            .replace("::", "-")
-            .replace("<", "_LT_")
-            .replace(">", "_GT_")
-            .replace(" ", "");
+        let fname = sanitize_name(export_path.path.to_token_stream().to_string());
         write_file(&refs_dir.join(fname), &source_code).unwrap();
         // do error handling
     }
@@ -285,13 +285,7 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
-    let fname = path
-        .to_token_stream()
-        .to_string()
-        .replace("::", "-")
-        .replace("<", "_LT_")
-        .replace(">", "_GT_")
-        .replace(" ", "");
+    let fname = sanitize_name(path.to_token_stream().to_string());
     let fpath = String::from(std::path::Path::new(REFS_DIR).join(fname).to_str().unwrap());
     let source_qt = quote!(let source = std::fs::read_to_string(#fpath).unwrap().parse::<::macro_magic::__private::TokenStream2>().unwrap(););
     quote! {

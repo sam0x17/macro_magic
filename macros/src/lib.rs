@@ -190,6 +190,16 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
+    let path = match get_const_path(&path) {
+        Ok(path) => path,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+}
+
+#[proc_macro]
+pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
+    let path = parse_macro_input!(tokens as TypePath);
     let fname = path
         .to_token_stream()
         .to_string()
@@ -197,14 +207,17 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
         .replace(" ", "");
     let fpath = std::path::Path::new(REFS_DIR).join(fname);
     if let Ok(source) = read_to_string(fpath) {
-        return quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into();
+        quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
+    } else {
+        Error::new(
+            path.span(),
+            "Indirectly importing the specified item failed. Make \
+             sure the path is correct and the crate the item appears \
+             in is being compiled as part of this workspace.",
+        )
+        .to_compile_error()
+        .into()
     }
-
-    let path = match get_const_path(&path) {
-        Ok(path) => path,
-        Err(e) => return e.to_compile_error().into(),
-    };
-    quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via

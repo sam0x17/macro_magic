@@ -60,7 +60,7 @@ fn external_file_parsing() {
 }
 
 #[test]
-fn external_crate_via_import_function() {
+fn external_crate_direct_import_fn() {
     example_macro!();
     // add function imported via import_tokens! call in proc macro
     assert_eq!(add2(2, 3), 5);
@@ -69,12 +69,12 @@ fn external_crate_via_import_function() {
 example_macro2!();
 
 #[test]
-fn external_crate_via_import_trait() {
+fn external_crate_direct_import_trait() {
     let _a: cool_types::Bar = 3;
 }
 
 #[test]
-fn external_crate_via_refs_dir_fn() {
+fn external_crate_indirect_import_fn() {
     example_macro3!();
     assert_eq!(mult(4, 5), 20);
 }

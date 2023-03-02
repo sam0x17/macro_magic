@@ -5,6 +5,11 @@ used in tandem, these two macros allow you to mark items in other files (and eve
 crates, as long as you can modify the source code) for export. The tokens of these items can
 then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
+Among other things, the patterns introduced by Macro Magic can be used to implement safe and
+efficient coordination and communication between macro invocations in the same file, and even
+across different files and different crates. This crate officially supercedes my previous
+effort at achieving this, [macro_state](https://docs.rs/macro_state/latest/macro_state/).
+
 Macro Magic is designed to work with stable Rust.
 
 ## Example

@@ -186,7 +186,84 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-// Expands to a `TokenStream2` representing the tokens of the item at the specified path
+/// The `import_tokens!(some::path::MyItem)` syntax is the primary way to bring exported tokens
+/// into scope in your proc macros (though it can also be used in non-proc-macro contexts, and
+/// is based on `TokenStream2` for this purpose).
+///
+/// This approach is called a "direct import" and requires the source and target to be in the
+/// same crate, or requires that the source crate is a dependency of the target crate. For a
+/// less restrictive approach, see [`import_tokens_indirect!`].
+///
+/// Suppose you have exported tokens using the [`macro@export_tokens`] attribute macro as follows:
+///
+/// ```ignore
+/// pub mod my_module {
+///     use macro_magic::*;
+///
+///     #[export_tokens]
+///     struct MyCoolStruct {
+///         foo: u32,
+///         bar: usize,
+///         fizz: bool,
+///     }
+/// }
+/// ```
+///
+/// You can now call `import_tokens!(MyCoolStruct)` anywhere that `my_module::*` has been
+/// brought into scope (via a `use`), and you can call
+/// `import_tokens!(my_module::MyCoolStruct)` anywhere that `my_module` is accessible,
+/// including elsewhere in the same crate, or in crates that have the crate containing
+/// `my_module` as a dependency.
+///
+/// In some other file in the same crate:
+/// ```ignore
+/// let tokens = import_tokens!(my_module::MyCoolStruct);
+/// ```
+///
+/// In a proc macro crate that has the `my_module` crate as a dependency:
+/// ```ignore
+/// #[proc_macro]
+/// pub fn my_macro(_tokens: TokenStream) -> TokenStream {
+///     let struct_tokens = import_tokens!(some_crate::my_module::MyCoolStruct);
+/// }
+/// ```
+///
+/// With a `use` statement:
+/// ```ignore
+/// use some_crate::my_module::*;
+///
+/// #[proc_macro]
+/// pub fn my_macro(_tokens: TokenStream) -> TokenStream {
+///     let struct_tokens = import_tokens!(MyCoolStruct);
+/// }
+/// ```
+///
+/// Note that you must be able to import the module that contains the item where you called
+/// `#[export_tokens]` for this to work properly.
+///
+/// ## Expansion
+///
+/// An invocation like this:
+/// ```ignore
+/// let tokens = import_tokens!(my_module::MyCoolStruct);
+/// ```
+/// would expand to this:
+/// ```ignore
+/// let tokens: TokenStream2 = my_module::MyCoolStruct::__EXPORT_TOKENS__MYCOOLSTRUCT
+///     .parse::<::macro_magic::__private::TokenStream2>()
+///     .unwrap();
+/// ```
+///
+/// The `.unwrap()` will never fail because for `#[export_tokens]` to compile, the item it is
+/// attached to must be a valid `syn::Item`, so syntax errors cannot make it into the
+/// `__EXPORT_TOKENS__MYCOOLSTRUCT` const.
+///
+/// Because the expansion of `import_tokens!()` calls the non-const function `.parse()`, you
+/// cannot use `import_tokens!()` in a const context.
+///
+/// Note that the type of `__EXPORT_TOKENS__MYCOOLSTRUCT` is `&'static str`. The naming of
+/// these constants is consistent and is defined by the [`get_const_name`] function. You should
+/// never need to call this directly so it is not exported anywhere.
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);

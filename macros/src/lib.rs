@@ -1,4 +1,5 @@
 extern crate proc_macro;
+use atomicwrites::{AllowOverwrite, AtomicFile};
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{fs::read_to_string, fs::OpenOptions, io::Write};
@@ -7,9 +8,12 @@ use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePat
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
-    let mut f = OpenOptions::new().write(true).create(true).open(path)?;
-    f.write_all(source.into().as_bytes())?;
-    f.flush()?;
+    let data: String = source.into();
+    let af = AtomicFile::new(path, AllowOverwrite);
+    af.write_with_options(
+        |f| f.write_all(data.as_bytes()),
+        OpenOptions::new().write(true).create(true).clone(),
+    )?;
     Ok(())
 }
 

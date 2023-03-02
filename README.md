@@ -225,16 +225,20 @@ abstraction once proc-macro expansion completes. The same goes for the temporary
 the indirect imports approach. These artifacts only exist at compile time and do not make it
 into the final binary.
 
+On a micro-scale, direct imports are slightly more efficient than indirect imports because they
+do not involve any extra IO activity, using only a `const` to synchronize information between
+source and target.
+
 ## Safety
 
 Direct imports via `import_tokens!` are 100% safe and don't rely on anything sketchy about
-compile-order.
+compile-order or artifacts in the `target` directory.
 
 Indirect imports are also safe because of how the `macro_magic` build script is constructed
 (unlike `macro_state`, which may stop working in the future depending on what changes are made
-to the Rust language), however, under the hood indirect imports rely on coordinating based on
-files in the `target` directory for the current workspace, so mileage may vary depending on the
-context where you try to use this approach.
+to the Rust language), however, under the hood indirect imports do rely on coordinating based
+on files in the `target` directory for the current workspace, so mileage may vary depending on
+the context where you try to use this approach.
 
 For this reason you should stick with direct imports via `import_tokens!` unless your use case
 requires the extra flexibility provided by `import_tokens_indirect!`.

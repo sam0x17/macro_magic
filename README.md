@@ -216,6 +216,11 @@ just use for disambiguation so we can tell the difference between these tokens a
 potential exports of an item called `MyItem`. The last segment _does_ need to match the name of
 the item you are exporting, however.
 
+## `re_export_tokens_const!`
+
+This macro allows you to re-export already exported tokens across modules and even crates. See
+the docs for more info.
+
 ## Overhead
 
 Because the automatically generated constants created by `#[export_tokens]` are only used in a

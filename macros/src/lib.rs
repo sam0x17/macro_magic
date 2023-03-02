@@ -2,18 +2,20 @@ extern crate proc_macro;
 use atomicwrites::{AllowOverwrite, AtomicFile};
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::{fs::read_to_string, fs::OpenOptions, io::Write};
+use std::{fs::OpenOptions, io::Write};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
+    println!("writing {}...", path.display());
     let data: String = source.into();
     let af = AtomicFile::new(path, AllowOverwrite);
     af.write_with_options(
         |f| f.write_all(data.as_bytes()),
         OpenOptions::new().write(true).create(true).clone(),
     )?;
+    println!("wrote {}.", path.display());
     Ok(())
 }
 
@@ -290,19 +292,27 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
         .replace("<", "_LT_")
         .replace(">", "_GT_")
         .replace(" ", "");
-    let fpath = std::path::Path::new(REFS_DIR).join(fname);
-    if let Ok(source) = read_to_string(fpath) {
-        quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
-    } else {
-        Error::new(
-            path.path.span(),
-            "Indirectly importing the specified item failed. Make \
-             sure the path is correct and the crate the item appears \
-             in is being compiled as part of this workspace.",
-        )
-        .to_compile_error()
-        .into()
+    let fpath = String::from(std::path::Path::new(REFS_DIR).join(fname).to_str().unwrap());
+    let source_qt = quote!(let source = std::fs::read_to_string(#fpath).unwrap().parse::<::macro_magic::__private::TokenStream2>().unwrap(););
+    quote! {
+        {
+            println!("reading {}...", #fpath);
+            #source_qt
+            println!("read {}.", #fpath);
+            source
+        }
     }
+    .into()
+    // } else {
+    //     Error::new(
+    //         path.path.span(),
+    //         "Indirectly importing the specified item failed. Make \
+    //          sure the path is correct and the crate the item appears \
+    //          in is being compiled as part of this workspace.",
+    //     )
+    //     .to_compile_error()
+    //     .into()
+    // }
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via

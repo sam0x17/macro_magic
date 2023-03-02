@@ -1,4 +1,4 @@
-# Macro Magic 🦀 🪄
+# Macro Magic 🪄
 
 This crate provides two powerful proc macros, `#[export_tokens]` and `import_tokens!`. When
 used in tandem, these two macros allow you to mark items in other files (and even in other

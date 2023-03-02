@@ -162,7 +162,7 @@ The example above would roughly expand to:
 let tokens = cool::path::__EXPORT_TOKENS__FOO_BAR.parse::<TokenStream2>().unwrap();
 ```
 
-## `import_tokens_indirect!`
+## import_tokens_indirect!
 
 While direct imports are useful, there are situations where it would be impractical or
 extremely cumbersome to have the crate where your tokens are exported from (i.e. the "source"
@@ -194,6 +194,7 @@ met:
    should be the name of the item that `#[export_tokens]` was attached to (i.e. the `Ident`),
    however this approach is not recommended since you can run into collisions if you are not
    explicit about naming. For highly uniquely named items, however, this is fine.
+5. The target crate _must_ be a proc macro crate.
 
 The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
 into any issues where exported tokens can't be found, make sure your source crate is included
@@ -216,10 +217,23 @@ just use for disambiguation so we can tell the difference between these tokens a
 potential exports of an item called `MyItem`. The last segment _does_ need to match the name of
 the item you are exporting, however.
 
-## `re_export_tokens_const!`
+## re_export_tokens_const!
 
 This macro allows you to re-export already exported tokens across modules and even crates. See
 the docs for more info.
+
+## Features
+
+By default no features are enabled. The following features are supported:
+
+### Verbose
+
+The "verbose" feature is disabled by default. If enabled, some extra debugging information will
+be printed at compile-time indicating when files are written and read from the `REFS_DIR` for
+the purpose of debugging `import_tokens_indirect!`.
+
+Normal users of the crate should not need this feature, however it is quite useful if things go
+wrong for some reason.
 
 ## Overhead
 

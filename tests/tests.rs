@@ -30,6 +30,18 @@ fn import_tokens_basic() {
 }
 
 #[test]
+fn import_tokens_generics() {
+    #[export_tokens]
+    struct MyGenericStruct<T: Into<String>> {
+        something: T,
+    }
+    assert_eq!(
+        import_tokens!(MyGenericStruct).to_string(),
+        "struct MyGenericStruct < T : Into < String >> { something : T , }"
+    );
+}
+
+#[test]
 fn external_file_parsing() {
     let tokens: TokenStream2 = import_tokens!(other_file::some_module::foo);
     let item_mod: ItemMod = syn::parse2(tokens).unwrap();

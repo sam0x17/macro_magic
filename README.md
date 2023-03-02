@@ -5,6 +5,8 @@ used in tandem, these two macros allow you to mark items in other files (and eve
 crates, as long as you can modify the source code) for export. The tokens of these items can
 then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
+Macro Magic is designed to work with stable Rust.
+
 ## Example
 
 Let's say you have some module that defines a bunch of type aliases like this:
@@ -118,7 +120,7 @@ pub const __EXPORT_TOKENS__FOO_BAR: &'static str = "fn foo_bar(a : u32) -> u32 {
 NOTE: items marked with `#[export_tokens]` do not need to be public, however they do need to be
 in a module that is accessible from wherever you intend to call `import_tokens!`.
 
-## `import_tokens!`
+## `import_tokens!` (Direct Import)
 
 You can pass the path of any item that has had the `#[export_tokens]` attribute applied to it
 directly to the `import_tokens!` macro to get a
@@ -134,6 +136,9 @@ will expand to a `TokenStream2` of the item, e.g.:
 let tokens = import_tokens!(cool::path::foo_bar);
 ```
 
+This style of importing is called a direct import because we directly include the code we are
+exporting into the context where the tokens are being used (usually a proc macro crate).
+
 ### Expansion
 
 The example above would roughly expand to:
@@ -142,9 +147,58 @@ The example above would roughly expand to:
 let tokens = cool::path::__EXPORT_TOKENS__FOO_BAR.parse::<TokenStream2>().unwrap();
 ```
 
+## `import_tokens!` (Indirect Import)
+
+While direct imports are useful, there are situations where it would be impractical or
+extremely cumbersome to have the crate where your tokens are exported from (i.e. the "source"
+crate) be a dependency of your proc macro crate where those tokens are used (i.e. the "target
+crate"). This is especially true in scenarios where your proc macro crate is consumed by
+arbitrary downstream users who cannot modify your proc macro crate in any way without forking
+it. We provide a workaround via what we call "indirect imports". Another use-case for indirect
+imports is scenarios where the item in question is hidden behind a private module, as indirect
+imports can work around this scenario.
+
+When you call `#[import_tokens]`, the macro first tries to perform an indirect import and then
+falls back to a direct import if the item can't be found. Indirect imports will work even when
+the item whose tokens you are importing is contained in a crate that is not a dependency of the
+current crate so long as the following requirements are met:
+
+1. The source crate and the target crate must be in the same
+   [cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). This is a
+   non-negotiable hard requirement when using indirect imports, however direct imports will
+   work fine across workspace boundaries.
+2. The source crate and the target crate must both use the same version of `macro_magic` (this
+   is not a hard requirement, but undefined behavior could occur with mixed versions).
+3. Both the source crate and target crate must be included in the compilation target such that
+   they are both compiled. Unlike with direct imports, where you explictily `use` the source
+   crate as a dependency of the target crate, there needs to be some reason to compile the
+   source crate, or its exported tokens will be unavailable.
+
+The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
+into any issues where exported tokens can't be found, make sure your source crate is included
+as part of the compilation target and that it is in the current workspace.
+
+Keep in mind that you can use the optional attribute, `#[export_tokens(my::path::Here)]` to
+specify a disambiguation path for the tokens you are exporting. Otherwise the name of the item
+the macro is attached to will be used, potentially causing collisions if you export items by
+the same name from different contexts.
+
+This situation will eventually be resolved when the machinery behind
+[caller_modpath](https://crates.io/crates/caller_modpath) is stabilized, which will allow
+`macro_magic` to automatically detect the path of the `#[export_tokens]`.
+
+A peculiar aspect of how `#[export_tokens(some_path)]` works is the path you enter doesn't need
+to be a real path. You could do `#[export_tokens(completely::made_up::path::MyItem)]` in one
+context and then `import_tokens!(completely::made_up::path::MyItem)` in another context, and it
+will still work as long as these two paths are the same. They need not actually exist, they are
+just use for disambiguation so we can tell the difference between these tokens and other
+potential exports of an item called `MyItem`.
+
 ## Overhead
 
 Because the automatically generated constants created by `#[export_tokens]` are only used in a
 proc-macro context, these constants do not add any bloat to the final binary because they will
 be optimized out in contexts where they are not used. Thus these constants are a zero-overhead
-abstraction once proc-macro expansion completes.
+abstraction once proc-macro expansion completes. The same goes for the temporary files used by
+the indirect imports approach. These artifacts only exist at compile time and do not make it
+into the final binary.

@@ -208,8 +208,8 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via
-/// [`export_tokens`] when doing direct imports. See the documentation for [`export_tokens`]
-/// and [`import_tokens!`] for more information.
+/// [`macro@export_tokens`] when doing direct imports. See the documentation for
+/// [`macro@export_tokens`] and [`import_tokens!`] for more information.
 ///
 /// For example, assume in the module `my::cool_module` you have the following code:
 /// ```ignore
@@ -258,8 +258,8 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// So in other words, this is just a way of cleanly re-exporting the internal token constants that are
-/// created by [`export_tokens`] to make them accessible elsewhere.
+/// So in other words, this is just a way of cleanly re-exporting the internal token constants
+/// that are created by [`macro@export_tokens`] to make them accessible elsewhere.
 ///
 /// ## Expansion
 ///

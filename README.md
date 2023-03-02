@@ -5,10 +5,16 @@ used in tandem, these two macros allow you to mark items in other files (and eve
 crates, as long as you can modify the source code) for export. The tokens of these items can
 then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
+An advanced macro, `import_tokens_indirect!` is also provided which is capable of going across
+crate boundaries without complicating your dependencies.
+
 Among other things, the patterns introduced by Macro Magic can be used to implement safe and
 efficient coordination and communication between macro invocations in the same file, and even
 across different files and different crates. This crate officially supercedes my previous
-effort at achieving this, [macro_state](https://crates.io/crates/macro_state).
+effort at achieving this, [macro_state](https://crates.io/crates/macro_state), which was
+designed to allow for building up and making use of state information across multiple macro
+invocations. All of the things you can do with `macro_state` you can also achieve with this
+crate, albeit with slightly different patterns.
 
 Macro Magic is designed to work with stable Rust.
 
@@ -129,7 +135,7 @@ pub const __EXPORT_TOKENS__FOO_BAR: &'static str = "fn foo_bar(a : u32) -> u32 {
 NOTE: items marked with `#[export_tokens]` do not need to be public, however they do need to be
 in a module that is accessible from wherever you intend to call `import_tokens!`.
 
-## `import_tokens!` (Direct Import)
+## `import_tokens!`
 
 You can pass the path of any item that has had the `#[export_tokens]` attribute applied to it
 directly to the `import_tokens!` macro to get a
@@ -156,7 +162,7 @@ The example above would roughly expand to:
 let tokens = cool::path::__EXPORT_TOKENS__FOO_BAR.parse::<TokenStream2>().unwrap();
 ```
 
-## `import_tokens!` (Indirect Import)
+## `import_tokens_indirect!`
 
 While direct imports are useful, there are situations where it would be impractical or
 extremely cumbersome to have the crate where your tokens are exported from (i.e. the "source"
@@ -167,21 +173,22 @@ it. We provide a workaround via what we call "indirect imports". Another use-cas
 imports is scenarios where the item in question is hidden behind a private module, as indirect
 imports can work around this scenario.
 
-When you call `#[import_tokens]`, the macro first tries to perform an indirect import and then
-falls back to a direct import if the item can't be found. Indirect imports will work even when
-the item whose tokens you are importing is contained in a crate that is not a dependency of the
-current crate so long as the following requirements are met:
+Calling `import_tokens_indirect!` is slightly different from calling `import_tokens!` in that
+indirect imports will work even when the item whose tokens you are importing is contained in a
+crate that is not a dependency of the current crate, so long as the following requirements are
+met:
 
 1. The source crate and the target crate must be in the same
    [cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). This is a
    non-negotiable hard requirement when using indirect imports, however direct imports will
-   work fine across workspace boundaries.
+   work fine across workspace boundaries (they just have other stricter requirements that can
+   be cumbersome).
 2. The source crate and the target crate must both use the same version of `macro_magic` (this
    is not a hard requirement, but undefined behavior could occur with mixed versions).
-3. Both the source crate and target crate must be included in the compilation target such that
-   they are both compiled. Unlike with direct imports, where you explictily `use` the source
-   crate as a dependency of the target crate, there needs to be some reason to compile the
-   source crate, or its exported tokens will be unavailable.
+3. Both the source crate and target crate must be included in the compilation target of the
+   current workspace such that they are both compiled. Unlike with direct imports, where you
+   explictily `use` the source crate as a dependency of the target crate, there needs to be
+   some reason to compile the source crate, or its exported tokens will be unavailable.
 
 The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
 into any issues where exported tokens can't be found, make sure your source crate is included
@@ -194,14 +201,15 @@ the same name from different contexts.
 
 This situation will eventually be resolved when the machinery behind
 [caller_modpath](https://crates.io/crates/caller_modpath) is stabilized, which will allow
-`macro_magic` to automatically detect the path of the `#[export_tokens]`.
+`macro_magic` to automatically detect the path of the `#[export_tokens]` caller.
 
 A peculiar aspect of how `#[export_tokens(some_path)]` works is the path you enter doesn't need
 to be a real path. You could do `#[export_tokens(completely::made_up::path::MyItem)]` in one
 context and then `import_tokens!(completely::made_up::path::MyItem)` in another context, and it
 will still work as long as these two paths are the same. They need not actually exist, they are
 just use for disambiguation so we can tell the difference between these tokens and other
-potential exports of an item called `MyItem`.
+potential exports of an item called `MyItem`. The last segment _does_ need to match the name of
+the item you are exporting, however.
 
 ## Overhead
 
@@ -211,3 +219,17 @@ be optimized out in contexts where they are not used. Thus these constants are a
 abstraction once proc-macro expansion completes. The same goes for the temporary files used by
 the indirect imports approach. These artifacts only exist at compile time and do not make it
 into the final binary.
+
+## Safety
+
+Direct imports via `import_tokens!` are 100% safe and don't rely on anything sketchy about
+compile-order.
+
+Indirect imports are also safe because of how the `macro_magic` build script is constructed
+(unlike `macro_state`, which may stop working in the future depending on what changes are made
+to the Rust language), however, under the hood indirect imports rely on coordinating based on
+files in the `target` directory for the current workspace, so mileage may vary depending on the
+context where you try to use this approach.
+
+For this reason you should stick with direct imports via `import_tokens!` unless your use case
+requires the extra flexibility provided by `import_tokens_indirect!`.

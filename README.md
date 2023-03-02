@@ -8,7 +8,7 @@ then be imported by the `import_tokens!` macro using the path to an item you hav
 Among other things, the patterns introduced by Macro Magic can be used to implement safe and
 efficient coordination and communication between macro invocations in the same file, and even
 across different files and different crates. This crate officially supercedes my previous
-effort at achieving this, [macro_state](https://docs.rs/macro_state/latest/macro_state/).
+effort at achieving this, [macro_state](https://crates.io/crates/macro_state).
 
 Macro Magic is designed to work with stable Rust.
 

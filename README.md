@@ -189,6 +189,11 @@ met:
    current workspace such that they are both compiled. Unlike with direct imports, where you
    explictily `use` the source crate as a dependency of the target crate, there needs to be
    some reason to compile the source crate, or its exported tokens will be unavailable.
+4. The export path declared by the source crate must exactly match the path you try to import
+   in the target crate. If you don't manually specify an export path, then your import path
+   should be the name of the item that `#[export_tokens]` was attached to (i.e. the `Ident`),
+   however this approach is not recommended since you can run into collisions if you are not
+   explicit about naming. For highly uniquely named items, however, this is fine.
 
 The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
 into any issues where exported tokens can't be found, make sure your source crate is included

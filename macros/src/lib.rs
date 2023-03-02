@@ -75,7 +75,7 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 ///
 /// ## Expansion
 ///
-/// ```rust
+/// ```ignore
 /// #[export_tokens]
 /// fn foo_bar(a: u32) -> u32 {
 ///     a * 2
@@ -84,7 +84,7 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 ///
 /// expands to:
 ///
-/// ```rust
+/// ```ignore
 /// #[allow(dead_code)]
 /// fn foo_bar(a: u32) -> u32 {
 ///     a * 2

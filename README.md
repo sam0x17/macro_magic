@@ -1,4 +1,4 @@
-# Macro Magic 🪄
+# Macro Magic 🦀 🪄
 
 This crate provides two powerful proc macros, `#[export_tokens]` and `import_tokens!`. When
 used in tandem, these two macros allow you to mark items in other files (and even in other
@@ -69,6 +69,9 @@ pub fn my_macro(tokens: TokenStream) -> TokenStream {
 }
 ```
 
+Even this caveat can be removed if you make use of indirect imports (explained below), which
+are capable of working without requiring the token source to be a dependency of the target.
+
 ## `#[export_tokens]`
 
 You can apply the `#[export_tokens]` macro to any
@@ -94,7 +97,8 @@ fn my_item () {
 ```
 
 Any valid `syn::TypePath`-compatible item is acceptable as input for `#[export_tokens]` and
-this input is optional.
+this input is optional. Furthermore the path need not exist -- you just have to use the same
+path when you import.
 
 ### Expansion
 

@@ -17,3 +17,8 @@ pub fn example_macro2(_tokens: TokenStream) -> TokenStream {
 pub fn example_macro3(_tokens: TokenStream) -> TokenStream {
     import_tokens_indirect!(example_crate2::mult).into()
 }
+
+#[proc_macro]
+pub fn example_macro4(_tokens: TokenStream) -> TokenStream {
+    import_tokens_indirect!(BadBad<T>).into()
+}

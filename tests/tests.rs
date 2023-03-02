@@ -85,3 +85,8 @@ fn re_exports() {
     assert!(!tokens.is_empty());
     assert!(tokens.to_string().contains("trait MyTrait"));
 }
+
+#[test]
+fn external_crate_indirect_generics_in_name() {
+    example_macro4!();
+}

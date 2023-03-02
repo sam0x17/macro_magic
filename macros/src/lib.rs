@@ -172,6 +172,8 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
             .to_token_stream()
             .to_string()
             .replace("::", "-")
+            .replace("<", "_LT_")
+            .replace(">", "_GT_")
             .replace(" ", "");
         write_file(&refs_dir.join(fname), &source_code).unwrap();
         // do error handling
@@ -281,13 +283,15 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
         .to_token_stream()
         .to_string()
         .replace("::", "-")
+        .replace("<", "_LT_")
+        .replace(">", "_GT_")
         .replace(" ", "");
     let fpath = std::path::Path::new(REFS_DIR).join(fname);
     if let Ok(source) = read_to_string(fpath) {
         quote!(#source.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
     } else {
         Error::new(
-            path.span(),
+            path.path.span(),
             "Indirectly importing the specified item failed. Make \
              sure the path is correct and the crate the item appears \
              in is being compiled as part of this workspace.",

@@ -2,8 +2,8 @@ extern crate proc_macro;
 use atomicwrites::{AllowOverwrite, AtomicFile};
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::{fs::OpenOptions, io::Write};
-use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+use std::{fs::OpenOptions, io::Write, iter::once, path::PathBuf};
+use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, PathSegment, TypePath};
 
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
@@ -19,6 +19,18 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
     #[cfg(feature = "verbose")]
     println!("wrote {}.", path.display());
     Ok(())
+}
+
+fn get_ref_path(type_path: &TypePath) -> PathBuf {
+    PathBuf::from_iter(
+        once(String::from(REFS_DIR)).chain(
+            type_path
+                .path
+                .segments
+                .iter()
+                .map(|seg| sanitize_name(seg.to_token_stream().to_string())),
+        ),
+    )
 }
 
 fn sanitize_name(name: String) -> String {

@@ -208,8 +208,8 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         let fpath = get_ref_path(&export_path);
         let Ok(_) = write_file(&fpath, &source_code) else {
             return Error::new(
-                item.span(),
-                format!("Failed to write to the internal path used by #[export_tokens] for indirect imports ('{}')", fpath.display()).as_str(),
+                export_path.path.segments.last().span(),
+                "Failed to write to the specified namespace, is it already occupied?",
             )
             .to_compile_error()
             .into()
@@ -340,6 +340,33 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     } else {
         return quote!(#src_qt).into();
     }
+}
+
+#[proc_macro]
+pub fn read_namespace(tokens: TokenStream) -> TokenStream {
+    let type_path = parse_macro_input!(tokens as TypePath);
+    let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
+    quote! {
+        {
+            use ::macro_magic::__private::TokenStream2;
+            let closure = || -> std::io::Result<Vec<TokenStream2>> {
+                let namespace_path = #ref_path;
+                let mut results: Vec<TokenStream2> = Vec::new();
+                for entry in std::fs::read_dir(&namespace_path)? {
+                    let entry = entry?;
+                    if entry.path().is_dir() {
+                        continue;
+                    }
+                    let source = std::fs::read_to_string(entry.path())?;
+                    let tokens2 = source.parse::<TokenStream2>().unwrap();
+                    results.push(tokens2);
+                }
+                Ok(results)
+            };
+            closure()
+        }
+    }
+    .into()
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via

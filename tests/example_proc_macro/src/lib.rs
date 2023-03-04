@@ -22,3 +22,24 @@ pub fn example_macro3(_tokens: TokenStream) -> TokenStream {
 pub fn example_macro4(_tokens: TokenStream) -> TokenStream {
     import_tokens_indirect!(BadBad<T>).into()
 }
+
+#[proc_macro]
+pub fn read_namespace_test_red(tokens: TokenStream) -> TokenStream {
+    let items = read_namespace!(foo_bar::red).unwrap();
+    assert_eq!(items.len(), 3);
+    tokens
+}
+
+#[proc_macro]
+pub fn read_namespace_test_green(tokens: TokenStream) -> TokenStream {
+    let items = read_namespace!(foo_bar::red::green).unwrap();
+    assert_eq!(items.len(), 4);
+    tokens.into()
+}
+
+#[proc_macro]
+pub fn read_namespace_test_foo_bar(tokens: TokenStream) -> TokenStream {
+    let items = read_namespace!(foo_bar).unwrap();
+    assert_eq!(items.len(), 0);
+    tokens.into()
+}

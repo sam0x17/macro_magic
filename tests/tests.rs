@@ -90,3 +90,18 @@ fn re_exports() {
 fn external_crate_indirect_generics_in_name() {
     example_macro4!();
 }
+
+#[test]
+fn read_namespace_red() {
+    read_namespace_test_red!();
+}
+
+#[test]
+fn read_namespace_green() {
+    read_namespace_test_green!();
+}
+
+#[test]
+fn read_namespace_foo_bar() {
+    read_namespace_test_foo_bar!();
+}

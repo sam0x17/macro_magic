@@ -8,3 +8,6 @@ publish = false
 
 [dependencies]
 macro_magic = { version = "*", path = "../../" }
+
+[features]
+indirect = ["macro_magic/indirect"]

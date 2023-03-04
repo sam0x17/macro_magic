@@ -59,6 +59,7 @@ fn external_file_parsing() {
     assert_eq!(item_const.ident.to_string(), "SOMETHING");
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn external_crate_direct_import_fn() {
     example_macro!();
@@ -73,6 +74,7 @@ fn external_crate_direct_import_trait() {
     let _a: cool_types::Bar = 3;
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn external_crate_indirect_import_fn() {
     example_macro3!();
@@ -86,21 +88,25 @@ fn re_exports() {
     assert!(tokens.to_string().contains("trait MyTrait"));
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn external_crate_indirect_generics_in_name() {
     example_macro4!();
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn read_namespace_red() {
     read_namespace_test_red!();
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn read_namespace_green() {
     read_namespace_test_green!();
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn read_namespace_foo_bar() {
     read_namespace_test_foo_bar!();

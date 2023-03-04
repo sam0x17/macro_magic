@@ -1,22 +1,28 @@
 extern crate proc_macro;
-use atomicwrites::{AllowOverwrite, AtomicFile};
 use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
+use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+
+#[cfg(feature = "indirect")]
 use std::{
     fs::{create_dir_all, OpenOptions},
     io::Write,
     iter,
     path::PathBuf,
 };
-use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
+#[cfg(feature = "indirect")]
+use atomicwrites::{AllowOverwrite, AtomicFile};
+
+#[cfg(feature = "indirect")]
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
+#[cfg(feature = "indirect")]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     let parent = path.parent().unwrap();
     if !parent.exists() {
         #[cfg(feature = "verbose")]
-        println!("directory {} doesn't exist, creating...");
+        println!("directory {} doesn't exist, creating...", parent.display());
         create_dir_all(parent)?;
     }
     #[cfg(feature = "verbose")]
@@ -32,6 +38,7 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
     Ok(())
 }
 
+#[cfg(feature = "indirect")]
 fn get_ref_path(type_path: &TypePath) -> PathBuf {
     PathBuf::from_iter(
         iter::once(String::from(REFS_DIR)).chain(
@@ -44,6 +51,7 @@ fn get_ref_path(type_path: &TypePath) -> PathBuf {
     )
 }
 
+#[cfg(feature = "indirect")]
 fn sanitize_name(name: String) -> String {
     name.replace("::", "-")
         .replace("<", "_LT_")
@@ -199,21 +207,32 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let const_ident = Ident::new(const_name.as_str(), Span::call_site().into());
     let source_code = tokens.to_string();
 
-    use std::path::Path;
-    let refs_dir = Path::new(REFS_DIR);
-    assert!(refs_dir.exists());
-
     if !attr.is_empty() {
         let export_path = parse_macro_input!(attr as TypePath);
-        let fpath = get_ref_path(&export_path);
-        let Ok(_) = write_file(&fpath, &source_code) else {
+        #[cfg(feature = "indirect")]
+        {
+            use std::path::Path;
+            let refs_dir = Path::new(REFS_DIR);
+            assert!(refs_dir.exists());
+            let fpath = get_ref_path(&export_path);
+            let Ok(_) = write_file(&fpath, &source_code) else {
+                return Error::new(
+                    export_path.path.segments.last().span(),
+                    "Failed to write to the specified namespace, is it already occupied?",
+                )
+                .to_compile_error()
+                .into()
+            };
+        }
+        #[cfg(not(feature = "indirect"))]
+        {
             return Error::new(
-                export_path.path.segments.last().span(),
-                "Failed to write to the specified namespace, is it already occupied?",
+                export_path.span(),
+                "Arguments for #[export_tokens] are only supported when the \"indirect\" feature is enabled"
             )
             .to_compile_error()
-            .into()
-        };
+            .into();
+        }
     }
     quote! {
         #[allow(dead_code)]
@@ -313,6 +332,7 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
+#[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
@@ -342,6 +362,7 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     }
 }
 
+#[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {
     let type_path = parse_macro_input!(tokens as TypePath);

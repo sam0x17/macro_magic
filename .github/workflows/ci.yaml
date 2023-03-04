@@ -7,8 +7,8 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  cargo-test:
-    name: cargo test
+  cargo-test-normal:
+    name: cargo test (normal)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,6 +17,16 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: cargo test
         run: cargo test --workspace
+  cargo-test-indirect:
+    name: cargo test (indirect)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Rust Toolchain
+        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+      - name: cargo test
+        run: cargo test --workspace --features=indirect
   cargo-fmt:
     name: cargo fmt
     runs-on: ubuntu-latest

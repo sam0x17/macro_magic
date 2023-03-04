@@ -10,4 +10,5 @@ publish = false
 macro_magic = { version = "*", path = "../../" }
 
 [features]
+default = []
 indirect = ["macro_magic/indirect"]

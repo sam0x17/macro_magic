@@ -14,4 +14,5 @@ macro_magic = { version = "*", path = "../../" }
 example_crate = { version = "*", path = "../example_crate" }
 
 [features]
+default = []
 indirect = ["macro_magic/indirect", "example_crate/indirect"]

@@ -24,4 +24,9 @@ example_crate2 = { version = "*", path = "./tests/z_example_crate2" }
 [features]
 default = []
 verbose = ["macros/verbose"]
-indirect = ["macros/indirect", "example_proc_macro/indirect", "example_crate/indirect", "example_crate2/indirect"]
+indirect = [
+    "macros/indirect",
+    "example_proc_macro/indirect",
+    "example_crate/indirect",
+    "example_crate2/indirect"
+]

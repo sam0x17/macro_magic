@@ -59,13 +59,6 @@ fn sanitize_name(name: String) -> String {
         .replace(" ", "")
 }
 
-#[cfg(feature = "indirect")]
-fn unsanitize_name(name: String) -> String {
-    name.replace("-", "::")
-        .replace("_LT_", "<")
-        .replace("_GT_", ">")
-}
-
 fn get_const_name(name: String) -> String {
     format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
 }
@@ -327,7 +320,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// cannot use `import_tokens!()` in a const context.
 ///
 /// Note that the type of `__EXPORT_TOKENS__MYCOOLSTRUCT` is `&'static str`. The naming of
-/// these constants is consistent and is defined by the [`get_const_name`] function. You should
+/// these constants is consistent and is defined by the `get_const_name` function. You should
 /// never need to call this directly so it is not exported anywhere.
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
@@ -410,7 +403,16 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
                     }
                     let source = std::fs::read_to_string(entry.path())?;
                     let tokens2 = source.parse::<TokenStream2>().unwrap();
-                    let name = entry.path().file_name().unwrap().to_string_lossy().to_owned().to_string();
+                    let name = entry
+                    .path()
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_owned()
+                    .to_string()
+                    .replace("-", "::")
+                    .replace("_LT_", "<")
+                    .replace("_GT_", ">");
                     results.push((name, tokens2));
                 }
                 results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());

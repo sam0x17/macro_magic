@@ -332,33 +332,42 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
-#[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     let path = parse_macro_input!(tokens as TypePath);
-    let fpath = get_ref_path(&path).to_str().unwrap().to_string();
-    let src_qt = quote! {
-        std::fs::read_to_string(#fpath)
-        .expect(
-            "Indirectly importing the specified item failed. Make \
-             sure the path is correct and the crate the item appears \
-             in is being compiled as part of this workspace.",
-        )
-        .parse::<::macro_magic::__private::TokenStream2>()
-        .unwrap()
-    };
-    if cfg!(feature = "verbose") {
-        return quote! {
-            {
-                println!("reading {}...", #fpath);
-                let source = #src_qt;
-                println!("read {}.", #fpath);
-                source
+    #[cfg(not(feature = "indirect"))]
+    return Error::new(
+        path.span(),
+        "The `import_tokens_indirect!` macro can only be used when the \"indirect\" feature is enabled",
+    )
+    .to_compile_error()
+    .into();
+    #[cfg(feature = "indirect")]
+    {
+        let fpath = get_ref_path(&path).to_str().unwrap().to_string();
+        let src_qt = quote! {
+            std::fs::read_to_string(#fpath)
+            .expect(
+                "Indirectly importing the specified item failed. Make \
+                 sure the path is correct and the crate the item appears \
+                 in is being compiled as part of this workspace.",
+            )
+            .parse::<::macro_magic::__private::TokenStream2>()
+            .unwrap()
+        };
+        if cfg!(feature = "verbose") {
+            return quote! {
+                {
+                    println!("reading {}...", #fpath);
+                    let source = #src_qt;
+                    println!("read {}.", #fpath);
+                    source
+                }
             }
+            .into();
+        } else {
+            return quote!(#src_qt).into();
         }
-        .into();
-    } else {
-        return quote!(#src_qt).into();
     }
 }
 
@@ -385,43 +394,52 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
 ///
 /// Note that `read_namespace!` always returns results sorted by name, so you can rely on the
 /// order to be consistent.
-#[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {
     let type_path = parse_macro_input!(tokens as TypePath);
-    let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
-    quote! {
-        {
-            use ::macro_magic::__private::TokenStream2;
-            let closure = || -> std::io::Result<Vec<(String, TokenStream2)>> {
-                let namespace_path = #ref_path;
-                let mut results: Vec<(String, TokenStream2)> = Vec::new();
-                for entry in std::fs::read_dir(&namespace_path)? {
-                    let entry = entry?;
-                    if entry.path().is_dir() {
-                        continue;
+    #[cfg(not(feature = "indirect"))]
+    return Error::new(
+        type_path.span(),
+        "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
+    )
+    .to_compile_error()
+    .into();
+    #[cfg(feature = "indirect")]
+    {
+        let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
+        quote! {
+            {
+                use ::macro_magic::__private::TokenStream2;
+                let closure = || -> std::io::Result<Vec<(String, TokenStream2)>> {
+                    let namespace_path = #ref_path;
+                    let mut results: Vec<(String, TokenStream2)> = Vec::new();
+                    for entry in std::fs::read_dir(&namespace_path)? {
+                        let entry = entry?;
+                        if entry.path().is_dir() {
+                            continue;
+                        }
+                        let source = std::fs::read_to_string(entry.path())?;
+                        let tokens2 = source.parse::<TokenStream2>().unwrap();
+                        let name = entry
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_owned()
+                        .to_string()
+                        .replace("-", "::")
+                        .replace("_LT_", "<")
+                        .replace("_GT_", ">");
+                        results.push((name, tokens2));
                     }
-                    let source = std::fs::read_to_string(entry.path())?;
-                    let tokens2 = source.parse::<TokenStream2>().unwrap();
-                    let name = entry
-                    .path()
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_owned()
-                    .to_string()
-                    .replace("-", "::")
-                    .replace("_LT_", "<")
-                    .replace("_GT_", ">");
-                    results.push((name, tokens2));
-                }
-                results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-                Ok(results)
-            };
-            closure()
+                    results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                    Ok(results)
+                };
+                closure()
+            }
         }
+        .into()
     }
-    .into()
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via

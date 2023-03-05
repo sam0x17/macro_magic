@@ -1,6 +1,6 @@
 [package]
 name = "mm_example_crate2"
-version = "0.1.1"
+version = "0.1.3"
 edition = "2021"
 repository = "https://github.com/sam0x17/macro_magic"
 description = "part of macro_magic"

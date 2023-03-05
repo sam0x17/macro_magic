@@ -2,7 +2,9 @@
 name = "macro_magic_macros"
 version = "0.1.0"
 edition = "2021"
-publish = false
+description = "Proc-macro sub-crate for macro_magic"
+repository = "https://github.com/sam0x17/macro_magic"
+homepage = "https://sam0x17.dev"
 
 [lib]
 proc-macro = true

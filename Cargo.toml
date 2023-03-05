@@ -9,7 +9,7 @@ authors = ["sam0x17"]
 license = "MIT"
 keywords = ["macro", "macros", "proc-macro", "proc-macros", "magic"]
 categories = ["development-tools", "development-tools::procedural-macro-helpers", "rust-patterns"]
-website = "https://sam0x17.dev"
+homepage = "https://sam0x17.dev"
 repository = "https://github.com/sam0x17/macro_magic"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

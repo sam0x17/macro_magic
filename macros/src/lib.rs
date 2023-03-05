@@ -369,6 +369,29 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     }
 }
 
+/// The `read_namespace` allows you to group a number of `#[export_tokens]` calls and collect
+/// them into a [`Result<Vec<(String, TokenStream2)>>`].
+///
+/// The first component of the tuple corresponds with the name of the item and the second
+/// component contains the tokens for that item. The `Result` is a [`std::io::Result`] and any
+/// `Err` variants that come back would indicate an internal error (i.e. something tampered
+/// with the `target` directory at an unexpected time) or (more likely) that the specified
+/// namespace does not exist.
+///
+/// The [`macro@export_tokens`] attribute automatically defines namespaces when you call it
+/// with an argument. Namespaces function like directories, so if you define item A with the
+/// path `foo::bar::fizz` and item B with path `foo::bar::buzz`, and you will get back both
+/// items if you read the namespace `foo::bar` i.e.:
+///
+/// ```ignore
+/// let namespace_items = read_namespace!(foo::bar).unwrap();
+/// let (name, tokens) = namespace_items.first().unwrap();
+/// // name = "buzz"
+/// // tokens = tokens for `foo::bar::buzz` item
+/// ```
+///
+/// Note that `read_namespace!` always returns results sorted by name, so you can rely on the
+/// order to be consistent.
 #[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {

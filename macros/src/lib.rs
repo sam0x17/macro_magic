@@ -75,9 +75,10 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
     Ok(path)
 }
 
-/// The `#[export_tokens]` attribute can be attached to any [`syn::Item`]-compatible source
-/// code item, with the exception of [`Item::ForeignMod`], [`Item::Impl`], [`Item::Macro`],
-/// [`Item::Use`], and [`Item::Verbatim`]. Attaching to an item will "export" that item so that
+/// This attribute can be attached to any [`syn::Item`]-compatible source code item, with the
+/// exception of [`ForeignMod'](`syn::Item::ForeignMod`), [`Impl`](`syn::Item::Impl`),
+/// [`Macro`](`syn::Item::Macro`), [`Use`](`syn::Item::Use`), and
+/// [`Verbatim`](`syn::Item::Verbatim`). Attaching to an item will "export" that item so that
 /// it can be imported elsewhere by name via the [`import_tokens!`] macro.
 ///
 /// For example, this would export a function named `foo`:

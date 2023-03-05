@@ -244,9 +244,9 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-/// The `import_tokens!(some::path::MyItem)` syntax is the primary way to bring exported tokens
-/// into scope in your proc macros (though it can also be used in non-proc-macro contexts, and
-/// is based on `TokenStream2` for this purpose).
+/// This macro is the primary way to bring exported tokens into scope in your proc macros
+/// (though it can also be used in non-proc-macro contexts, and is based on `TokenStream2` for
+/// this purpose).
 ///
 /// This approach is called a "direct import" and requires the source and target to be in the
 /// same crate, or requires that the source crate is a dependency of the target crate. For a
@@ -332,6 +332,63 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     quote!(#path.parse::<::macro_magic::__private::TokenStream2>().unwrap()).into()
 }
 
+/// This macro allows you to import tokens across crate boundaries
+/// without strict dependency requirements and to use advanced features such as
+/// [`namespacing`](`read_namespace!').
+///
+/// Calling `import_tokens_indirect!` is slightly different from calling [`import_tokens!`] in
+/// that indirect imports will work even when the item whose tokens you are importing is
+/// contained in a crate that is not a dependency of the current crate, so long as the
+/// following requirements are met:
+///
+/// 1. The "indirect" feature must be enabled for `macro_magic`, otherwise the
+///    `import_tokens_indirect!` macro will not be available.
+/// 2. The source crate and the target crate must be in the same
+///    [cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). This is a
+///    non-negotiable hard requirement when using indirect imports, however direct imports will
+///    work fine across workspace boundaries (they just have other stricter requirements that
+///    can be cumbersome).
+/// 3. The source crate and the target crate must both use the same version of `macro_magic`
+///    (this is not a hard requirement, but undefined behavior could occur with mixed
+///    versions).
+/// 4. Both the source crate and target crate must have their builds somehow triggered by the
+///    compilation target of the current workspace such that they are both compiled. Unlike
+///    with direct imports, where you explictily `use` the source crate as a dependency of the
+///    target crate, there needs to be some reason to compile the source crate, or its exported
+///    tokens will be unavailable.
+/// 5. The export path declared by the source crate must exactly match the path you try to
+///    import in the target crate. If you don't manually specify an export path, then your
+///    import path should be the name of the item that `#[export_tokens]` was attached to (i.e.
+///    the `Ident`), however this approach is not recommended since you can run into collisions
+///    if you are not explicit about naming. For highly uniquely named items, however, this is
+///    fine. In other words, if you don't specify a namespace, and you have an item named `foo`
+///    in two different files, when you export these two items, they will collide.
+/// 6. The target crate _must_ be a proc macro crate. If this requirement is violated, then the
+///    build-order guarantees exploited by the indirect approach no longer hold true and you
+///    may experience undefined behavior in the form of compile errors.
+///
+/// The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
+/// into any issues where exported tokens can't be found, make sure your source crate is
+/// included as part of the compilation target and that it is in the current workspace.
+/// Likewise watch out for collisions as these are easy to encounter if you don't
+/// [`namespace`](`read_namespace!') your items.
+///
+/// Keep in mind that you can use the optional attribute, `#[export_tokens(my::path::Here)]` to
+/// specify a disambiguation path for the tokens you are exporting. Otherwise the name of the item
+/// the macro is attached to will be used, potentially causing collisions if you export items by
+/// the same name from different contexts.
+///
+/// This situation will eventually be resolved when the machinery behind
+/// [caller_modpath](https://crates.io/crates/caller_modpath) is stabilized, which will allow
+/// `macro_magic` to automatically detect the path of the `#[export_tokens]` caller.
+///
+/// A peculiar aspect of how `#[export_tokens(some_path)]` works is the path you enter doesn't need
+/// to be a real path. You could do `#[export_tokens(completely::made_up::path::MyItem)]` in one
+/// context and then `import_tokens!(completely::made_up::path::MyItem)` in another context, and it
+/// will still work as long as these two paths are the same. They need not actually exist, they are
+/// just used for disambiguation so we can tell the difference between these tokens and other
+/// potential exports of an item called `MyItem`. The last segment _does_ need to match the name of
+/// the item you are exporting, however.
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]

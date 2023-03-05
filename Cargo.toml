@@ -3,7 +3,7 @@ members = ["macros"]
 
 [package]
 name = "macro_magic"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["sam0x17"]
 license = "MIT"
@@ -16,12 +16,12 @@ repository = "https://github.com/sam0x17/macro_magic"
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
-macro_magic_macros = { version = "0.1.0", path = "./macros" }
+macro_magic_macros = { version = "0.1.1", path = "./macros" }
 
 [dev-dependencies]
-mm_example_crate = { version = "0.1.0", path = "./tests/example_crate" }
-mm_example_proc_macro = { version = "0.1.0", path = "./tests/example_proc_macro" }
-mm_example_crate2 = { version = "0.1.0", path = "./tests/example_crate2" }
+mm_example_crate = { version = "0.1.1", path = "./tests/example_crate" }
+mm_example_proc_macro = { version = "0.1.1", path = "./tests/example_proc_macro" }
+mm_example_crate2 = { version = "0.1.1", path = "./tests/example_crate2" }
 
 [features]
 default = []

@@ -5,8 +5,10 @@ used in tandem, these two macros allow you to mark items in other files (and eve
 crates, as long as you can modify the source code) for export. The tokens of these items can
 then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
-An advanced macro, `import_tokens_indirect!` is also provided which is capable of going across
-crate boundaries without complicating your dependencies.
+Two advanced macros, `import_tokens_indirect!` and `read_namespace!` are provided when the
+"indirect" feature is enabled. These macro are capable of going across crate boundaries without
+complicating your dependencies and can return collections of tokens based on a shared common
+prefix.
 
 Among other things, the patterns introduced by Macro Magic can be used to implement safe and
 efficient coordination and communication between macro invocations in the same file, and even
@@ -178,23 +180,25 @@ indirect imports will work even when the item whose tokens you are importing is 
 crate that is not a dependency of the current crate, so long as the following requirements are
 met:
 
+1. The "indirect" feature must be enabled for `macro_magic`, otherwise the
+   `import_tokens_indirect!` macro will not be available.
 1. The source crate and the target crate must be in the same
    [cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). This is a
    non-negotiable hard requirement when using indirect imports, however direct imports will
    work fine across workspace boundaries (they just have other stricter requirements that can
    be cumbersome).
-2. The source crate and the target crate must both use the same version of `macro_magic` (this
+1. The source crate and the target crate must both use the same version of `macro_magic` (this
    is not a hard requirement, but undefined behavior could occur with mixed versions).
-3. Both the source crate and target crate must be included in the compilation target of the
+1. Both the source crate and target crate must be included in the compilation target of the
    current workspace such that they are both compiled. Unlike with direct imports, where you
    explictily `use` the source crate as a dependency of the target crate, there needs to be
    some reason to compile the source crate, or its exported tokens will be unavailable.
-4. The export path declared by the source crate must exactly match the path you try to import
+1. The export path declared by the source crate must exactly match the path you try to import
    in the target crate. If you don't manually specify an export path, then your import path
    should be the name of the item that `#[export_tokens]` was attached to (i.e. the `Ident`),
    however this approach is not recommended since you can run into collisions if you are not
    explicit about naming. For highly uniquely named items, however, this is fine.
-5. The target crate _must_ be a proc macro crate.
+1. The target crate _must_ be a proc macro crate.
 
 The vast majority of common use cases for `macro_magic` meet these criteria, but if you run
 into any issues where exported tokens can't be found, make sure your source crate is included
@@ -260,6 +264,15 @@ the purpose of debugging `import_tokens_indirect!`.
 Normal users of the crate should not need this feature, however it is quite useful if things go
 wrong for some reason.
 
+### Indirect
+
+The "indirect" feature is disabled by default. When this feature is disabled, only
+`#[export_tokens]`, `import_tokens!` and `re_export_tokens_const!` will be available and the
+`read_namespace!` and `import_tokens_indirect!` macros will not be compiled. When "indirect" is
+enabled, all of these macros will be available and you will be able to do indirect imports and
+read namespaces. Namespaces and indirect imports are _only_ supported when the "indirect"
+feature is enabled.
+
 ## Overhead
 
 Because the automatically generated constants created by `#[export_tokens]` are only used in a
@@ -284,5 +297,6 @@ to the Rust language), however, under the hood indirect imports do rely on coord
 on files in the `target` directory for the current workspace, so mileage may vary depending on
 the context where you try to use this approach.
 
-For this reason you should stick with direct imports via `import_tokens!` unless your use case
-requires the extra flexibility provided by `import_tokens_indirect!`.
+For this reason it is recommended to stick with `import_tokens!` unless your use case requires
+the extra flexibility provided by `import_tokens_indirect!`. You can disable
+`import_tokens_indirect!` completely by not opting in to the "indirect" feature.

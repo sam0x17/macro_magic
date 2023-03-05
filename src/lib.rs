@@ -20,7 +20,7 @@
 //!
 //! Macro Magic is designed to work with stable Rust.
 
-pub use macros::*;
+pub use macro_magic_macros::*;
 
 #[doc(hidden)]
 pub mod __private {

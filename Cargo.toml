@@ -16,7 +16,7 @@ repository = "https://github.com/sam0x17/macro_magic"
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
-macros = { version = "*", path = "./macros" }
+macro_magic_macros = { version = "*", path = "./macros" }
 
 [dev-dependencies]
 example_crate = { version = "*", path = "./tests/example_crate" }
@@ -25,9 +25,9 @@ example_crate2 = { version = "*", path = "./tests/example_crate2" }
 
 [features]
 default = []
-verbose = ["macros/verbose"]
+verbose = ["macro_magic_macros/verbose"]
 indirect = [
-    "macros/indirect",
+    "macro_magic_macros/indirect",
     "example_proc_macro/indirect",
     "example_crate/indirect",
     "example_crate2/indirect"

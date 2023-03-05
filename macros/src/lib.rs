@@ -334,10 +334,11 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
+    #[allow(unused)]
     let path = parse_macro_input!(tokens as TypePath);
     #[cfg(not(feature = "indirect"))]
     return Error::new(
-        path.span(),
+        Span::call_site().into(),
         "The `import_tokens_indirect!` macro can only be used when the \"indirect\" feature is enabled",
     )
     .to_compile_error()
@@ -396,10 +397,11 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
 /// order to be consistent.
 #[proc_macro]
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {
+    #[allow(unused)]
     let type_path = parse_macro_input!(tokens as TypePath);
     #[cfg(not(feature = "indirect"))]
     return Error::new(
-        type_path.span(),
+        Span::call_site().into(),
         "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
     )
     .to_compile_error()

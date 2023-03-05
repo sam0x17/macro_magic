@@ -1,5 +1,5 @@
-use ::example_proc_macro::*;
 use ::macro_magic::{__private::TokenStream2, *};
+use ::mm_example_proc_macro::*;
 use syn::{ItemConst, ItemMod, __private::ToTokens};
 
 mod other_file;

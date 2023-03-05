@@ -5,18 +5,18 @@ use macro_magic::*;
 
 #[proc_macro]
 pub fn example_macro(_tokens: TokenStream) -> TokenStream {
-    import_tokens!(example_crate::add2).into()
+    import_tokens!(mm_example_crate::add2).into()
 }
 
 #[proc_macro]
 pub fn example_macro2(_tokens: TokenStream) -> TokenStream {
-    import_tokens!(example_crate::cool_types).into()
+    import_tokens!(mm_example_crate::cool_types).into()
 }
 
 #[cfg(feature = "indirect")]
 #[proc_macro]
 pub fn example_macro3(_tokens: TokenStream) -> TokenStream {
-    import_tokens_indirect!(example_crate2::mult).into()
+    import_tokens_indirect!(mm_example_crate2::mult).into()
 }
 
 #[cfg(feature = "indirect")]

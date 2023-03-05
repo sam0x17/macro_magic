@@ -1,8 +1,7 @@
 [package]
-name = "example_proc_macro"
+name = "mm_example_proc_macro"
 version = "0.1.0"
 edition = "2021"
-publish = false
 
 [lib]
 proc-macro = true
@@ -11,8 +10,8 @@ proc-macro = true
 
 [dependencies]
 macro_magic = { version = "0.1.0", path = "../../" }
-example_crate = { version = "0.1.0", path = "../example_crate" }
+mm_example_crate = { version = "0.1.0", path = "../example_crate" }
 
 [features]
 default = []
-indirect = ["macro_magic/indirect", "example_crate/indirect"]
+indirect = ["macro_magic/indirect", "mm_example_crate/indirect"]

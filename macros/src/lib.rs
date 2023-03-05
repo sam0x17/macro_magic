@@ -569,7 +569,7 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
 /// ```ignore
 /// use macro_magic::re_export_tokens_const;
 /// #[doc(hidden)]
-/// pub use example_crate::cool_module::__EXPORT_TOKENS__MYTRAIT;
+/// pub use mm_example_crate::cool_module::__EXPORT_TOKENS__MYTRAIT;
 /// ```
 ///
 /// Notice that the actual item under the hood is a `const`. &'static str`.

@@ -19,16 +19,16 @@ syn = { version = "1.0", features = ["full"] }
 macro_magic_macros = { version = "0.1.0", path = "./macros" }
 
 [dev-dependencies]
-example_crate = { version = "0.1.0", path = "./tests/example_crate" }
-example_proc_macro = { version = "0.1.0", path = "./tests/example_proc_macro" }
-example_crate2 = { version = "0.1.0", path = "./tests/example_crate2" }
+mm_example_crate = { version = "0.1.0", path = "./tests/example_crate" }
+mm_example_proc_macro = { version = "0.1.0", path = "./tests/example_proc_macro" }
+mm_example_crate2 = { version = "0.1.0", path = "./tests/example_crate2" }
 
 [features]
 default = []
 verbose = ["macro_magic_macros/verbose"]
 indirect = [
     "macro_magic_macros/indirect",
-    "example_proc_macro/indirect",
-    "example_crate/indirect",
-    "example_crate2/indirect"
+    "mm_example_proc_macro/indirect",
+    "mm_example_crate/indirect",
+    "mm_example_crate2/indirect"
 ]

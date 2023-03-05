@@ -1,7 +1,7 @@
 use macro_magic::export_tokens;
 
 #[cfg(feature = "indirect")]
-#[export_tokens(example_crate2::mult)]
+#[export_tokens(mm_example_crate2::mult)]
 fn mult(a: i32, b: i32) -> i32 {
     a * b
 }

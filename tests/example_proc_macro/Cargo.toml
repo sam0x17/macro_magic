@@ -10,8 +10,8 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-macro_magic = { version = "*", path = "../../" }
-example_crate = { version = "*", path = "../example_crate" }
+macro_magic = { version = "0.1.0", path = "../../" }
+example_crate = { version = "0.1.0", path = "../example_crate" }
 
 [features]
 default = []

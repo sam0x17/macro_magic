@@ -1,7 +1,7 @@
 # Macro Magic 🪄
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/sam0x17/macro_magic/ci.yaml)](https://github.com/sam0x17/macro_magic/actions/workflows/ci.yaml?query=branch%3Amain)
-![GitHub](https://img.shields.io/github/license/sam0x17/macro_magic)
+[![MIT License](https://img.shields.io/github/license/sam0x17/macro_magic)](https://github.com/sam0x17/macro_magic/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/d/macro_magic)](https://crates.io/crates/macro_magic)
 [![docs.rs](https://img.shields.io/docsrs/macro_magic?label=docs)](https://docs.rs/macro_magic/latest/macro_magic/)
 

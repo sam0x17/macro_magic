@@ -1,5 +1,10 @@
 # Macro Magic 🪄
 
+![Build Status](https://img.shields.io/github/actions/workflow/status/sam0x17/macro_magic/ci.yaml)
+![GitHub](https://img.shields.io/github/license/sam0x17/macro_magic)
+![Crates.io](https://img.shields.io/crates/d/macro_magic)
+![docs.rs](https://img.shields.io/docsrs/macro_magic?label=docs)
+
 This crate provides two powerful proc macros, `#[export_tokens]` and `import_tokens!`. When
 used in tandem, these two macros allow you to mark items in other files (and even in other
 crates, as long as you can modify the source code) for export. The tokens of these items can

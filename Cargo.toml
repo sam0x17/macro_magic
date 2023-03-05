@@ -1,5 +1,10 @@
 [workspace]
-members = ["macros"]
+members = [
+    "macros",
+    "tests/example_crate",
+    "tests/example_crate2",
+    "tests/example_proc_macro",
+]
 
 [package]
 name = "macro_magic"

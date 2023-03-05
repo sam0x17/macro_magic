@@ -2,6 +2,8 @@
 name = "mm_example_proc_macro"
 version = "0.1.1"
 edition = "2021"
+repository = "https://github.com/sam0x17/macro_magic"
+description = "part of macro_magic"
 
 [lib]
 proc-macro = true

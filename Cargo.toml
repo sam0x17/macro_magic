@@ -19,7 +19,7 @@ macros = { version = "*", path = "./macros" }
 [dev-dependencies]
 example_crate = { version = "*", path = "./tests/example_crate" }
 example_proc_macro = { version = "*", path = "./tests/example_proc_macro" }
-example_crate2 = { version = "*", path = "./tests/z_example_crate2" }
+example_crate2 = { version = "*", path = "./tests/example_crate2" }
 
 [features]
 default = []

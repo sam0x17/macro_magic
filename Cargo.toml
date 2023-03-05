@@ -11,6 +11,7 @@ keywords = ["macro", "macros", "proc-macro", "proc-macros", "magic"]
 categories = ["development-tools", "development-tools::procedural-macro-helpers", "rust-patterns"]
 homepage = "https://sam0x17.dev"
 repository = "https://github.com/sam0x17/macro_magic"
+description = "Allows the exporting and importing of the tokens of items across module, file, and crate boundaries"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,17 +19,17 @@ repository = "https://github.com/sam0x17/macro_magic"
 syn = { version = "1.0", features = ["full"] }
 macro_magic_macros = { version = "0.1.1", path = "./macros" }
 
-[dev-dependencies]
-mm_example_crate = { version = "0.1.1", path = "./tests/example_crate" }
-mm_example_proc_macro = { version = "0.1.1", path = "./tests/example_proc_macro" }
-mm_example_crate2 = { version = "0.1.1", path = "./tests/example_crate2" }
+# [dev-dependencies]
+# mm_example_crate = { version = "0.1.1", path = "./tests/example_crate" }
+# mm_example_proc_macro = { version = "0.1.1", path = "./tests/example_proc_macro" }
+# mm_example_crate2 = { version = "0.1.1", path = "./tests/example_crate2" }
 
 [features]
 default = []
 verbose = ["macro_magic_macros/verbose"]
 indirect = [
     "macro_magic_macros/indirect",
-    "mm_example_proc_macro/indirect",
-    "mm_example_crate/indirect",
-    "mm_example_crate2/indirect"
+    # "mm_example_proc_macro/indirect",
+    # "mm_example_crate/indirect",
+    # "mm_example_crate2/indirect"
 ]

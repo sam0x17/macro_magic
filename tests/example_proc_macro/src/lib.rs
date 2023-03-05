@@ -37,6 +37,7 @@ pub fn read_namespace_test_red(tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn read_namespace_test_green(tokens: TokenStream) -> TokenStream {
     let items = read_namespace!(foo_bar::red::green).unwrap();
+    assert_eq!(items.first().unwrap().0, "max_f64");
     assert_eq!(items.len(), 4);
     tokens.into()
 }

@@ -27,7 +27,7 @@ fn max_i64(a: i64, b: i64) -> i64 {
 }
 
 #[cfg(feature = "indirect")]
-#[export_tokens(foo_bar::red::green::maax_i128)]
+#[export_tokens(foo_bar::red::green::max_i128)]
 fn max_i128(a: i128, b: i128) -> i128 {
     if a < b {
         b

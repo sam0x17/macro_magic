@@ -59,6 +59,13 @@ fn sanitize_name(name: String) -> String {
         .replace(" ", "")
 }
 
+#[cfg(feature = "indirect")]
+fn unsanitize_name(name: String) -> String {
+    name.replace("-", "::")
+        .replace("_LT_", "<")
+        .replace("_GT_", ">")
+}
+
 fn get_const_name(name: String) -> String {
     format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
 }
@@ -370,9 +377,9 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
     quote! {
         {
             use ::macro_magic::__private::TokenStream2;
-            let closure = || -> std::io::Result<Vec<TokenStream2>> {
+            let closure = || -> std::io::Result<Vec<(String, TokenStream2)>> {
                 let namespace_path = #ref_path;
-                let mut results: Vec<TokenStream2> = Vec::new();
+                let mut results: Vec<(String, TokenStream2)> = Vec::new();
                 for entry in std::fs::read_dir(&namespace_path)? {
                     let entry = entry?;
                     if entry.path().is_dir() {
@@ -380,8 +387,10 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
                     }
                     let source = std::fs::read_to_string(entry.path())?;
                     let tokens2 = source.parse::<TokenStream2>().unwrap();
-                    results.push(tokens2);
+                    let name = entry.path().file_name().unwrap().to_string_lossy().to_owned().to_string();
+                    results.push((name, tokens2));
                 }
+                results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
                 Ok(results)
             };
             closure()

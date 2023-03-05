@@ -18,7 +18,7 @@ designed to allow for building up and making use of state information across mul
 invocations. All of the things you can do with `macro_state` you can also achieve with this
 crate, albeit with slightly different patterns.
 
-Macro Magic is designed to work with stable Rust.
+`macro_magic` is designed to work with stable Rust.
 
 ## Example
 

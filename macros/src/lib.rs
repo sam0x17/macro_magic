@@ -76,8 +76,8 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 }
 
 /// This attribute can be attached to any [`syn::Item`]-compatible source code item, with the
-/// exception of [`ForeignMod'](`syn::Item::ForeignMod`), [`Impl`](`syn::Item::Impl`),
-/// [`Macro`](`syn::Item::Macro`), [`Use`](`syn::Item::Use`), and
+/// exception of [`ForeignMod`](`syn::ItemForeignMod`), [`Impl`](`syn::ItemImpl`),
+/// [`Macro`](`syn::ItemMacro`), [`Use`](`syn::ItemUse`), and
 /// [`Verbatim`](`syn::Item::Verbatim`). Attaching to an item will "export" that item so that
 /// it can be imported elsewhere by name via the [`import_tokens!`] macro.
 ///
@@ -101,7 +101,8 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 /// }
 /// ```
 ///
-/// You can also specify a path as an argument to `#[export_tokens]` as follows:
+/// You can also specify a path as an argument to [`#[export_tokens]`](`macro@export_tokens`)
+/// as follows:
 /// ```ignore
 /// use macro_magic::export_tokens;
 ///
@@ -246,14 +247,15 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 }
 
 /// This macro is the primary way to bring exported tokens into scope in your proc macros
-/// (though it can also be used in non-proc-macro contexts, and is based on `TokenStream2` for
-/// this purpose).
+/// (though it can also be used in non-proc-macro contexts, and is based on
+/// [`TokenStream2`](syn::__private::TokenStream2) for this purpose).
 ///
 /// This approach is called a "direct import" and requires the source and target to be in the
 /// same crate, or requires that the source crate is a dependency of the target crate. For a
 /// less restrictive approach, see [`import_tokens_indirect!`].
 ///
-/// Suppose you have exported tokens using the [`macro@export_tokens`] attribute macro as follows:
+/// Suppose you have exported tokens using the [`#[export_tokens]`](`macro@export_tokens`)
+/// attribute macro as follows:
 ///
 /// ```ignore
 /// pub mod my_module {
@@ -313,12 +315,13 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 ///     .unwrap();
 /// ```
 ///
-/// The `.unwrap()` will never fail because for `#[export_tokens]` to compile, the item it is
-/// attached to must be a valid `syn::Item`, so syntax errors cannot make it into the
-/// `__EXPORT_TOKENS__MYCOOLSTRUCT` const.
+/// The `.unwrap()` will never fail because for [`#[export_tokens]`](`macro@export_tokens`) to
+/// compile, the item it is attached to must be a valid [`syn::Item`], so syntax errors cannot
+/// make it into the `__EXPORT_TOKENS__MYCOOLSTRUCT` const.
 ///
-/// Because the expansion of `import_tokens!()` calls the non-const function `.parse()`, you
-/// cannot use `import_tokens!()` in a const context.
+/// Because the expansion of [`import_tokens!()`](`macro@import_tokens`) calls the non-const
+/// function `.parse()`, you cannot use [`import_tokens!`](`macro@import_tokens`) in a const
+/// context.
 ///
 /// Note that the type of `__EXPORT_TOKENS__MYCOOLSTRUCT` is `&'static str`. The naming of
 /// these constants is consistent and is defined by the `get_const_name` function. You should
@@ -359,11 +362,12 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 ///    tokens will be unavailable.
 /// 5. The export path declared by the source crate must exactly match the path you try to
 ///    import in the target crate. If you don't manually specify an export path, then your
-///    import path should be the name of the item that `#[export_tokens]` was attached to (i.e.
-///    the `Ident`), however this approach is not recommended since you can run into collisions
-///    if you are not explicit about naming. For highly uniquely named items, however, this is
-///    fine. In other words, if you don't specify a namespace, and you have an item named `foo`
-///    in two different files, when you export these two items, they will collide.
+///    import path should be the name of the item that
+///    [`#[export_tokens]`](`macro@export_tokens`) was attached to (i.e. the `Ident`), however
+///    this approach is not recommended since you can run into collisions if you are not
+///    explicit about naming. For highly uniquely named items, however, this is fine. In other
+///    words, if you don't specify a namespace, and you have an item named `foo` in two
+///    different files, when you export these two items, they will collide.
 /// 6. The target crate _must_ be a proc macro crate. If this requirement is violated, then the
 ///    build-order guarantees exploited by the indirect approach no longer hold true and you
 ///    may experience undefined behavior in the form of compile errors.
@@ -381,15 +385,17 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 ///
 /// This situation will eventually be resolved when the machinery behind
 /// [caller_modpath](https://crates.io/crates/caller_modpath) is stabilized, which will allow
-/// `macro_magic` to automatically detect the path of the `#[export_tokens]` caller.
+/// `macro_magic` to automatically detect the path of the
+/// [`#[export_tokens]`](`macro@export_tokens`) caller.
 ///
-/// A peculiar aspect of how `#[export_tokens(some_path)]` works is the path you enter doesn't need
-/// to be a real path. You could do `#[export_tokens(completely::made_up::path::MyItem)]` in one
-/// context and then `import_tokens!(completely::made_up::path::MyItem)` in another context, and it
-/// will still work as long as these two paths are the same. They need not actually exist, they are
-/// just used for disambiguation so we can tell the difference between these tokens and other
-/// potential exports of an item called `MyItem`. The last segment _does_ need to match the name of
-/// the item you are exporting, however.
+/// A peculiar aspect of how [`#[export_tokens(some_path)]`](`macro@export_tokens`) works is
+/// the path you enter doesn't need to be a real path. You could do
+/// `#[export_tokens(completely::made_up::path::MyItem)]` in one context and then
+/// `import_tokens!(completely::made_up::path::MyItem)` in another context, and it will still
+/// work as long as these two paths are the same. They need not actually exist, they are just
+/// used for disambiguation so we can tell the difference between these tokens and other
+/// potential exports of an item called `MyItem`. The last segment _does_ need to match the
+/// name of the item you are exporting, however.
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]
@@ -430,8 +436,8 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     }
 }
 
-/// The `read_namespace` allows you to group a number of `#[export_tokens]` calls and collect
-/// them into a [`Result<Vec<(String, TokenStream2)>>`].
+/// This macro allows you to group a number of [`#[export_tokens]`](`macro@export_tokens`)
+/// calls and collect them into a `Result<Vec<(String, TokenStream2)>>`.
 ///
 /// The first component of the tuple corresponds with the name of the item and the second
 /// component contains the tokens for that item. The `Result` is a [`std::io::Result`] and any
@@ -503,8 +509,10 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
 }
 
 /// This convenient macro can be used to publicly re-export an item that has been exported via
-/// [`macro@export_tokens`] when doing direct imports. See the documentation for
-/// [`macro@export_tokens`] and [`import_tokens!`] for more information.
+/// [`#[export_tokens]`](`macro@export_tokens`) when doing direct imports.
+///
+/// See the documentation for [`#[export_tokens]`](`macro@export_tokens`) and
+/// [`import_tokens!`] for more information.
 ///
 /// For example, assume in the module `my::cool_module` you have the following code:
 /// ```ignore

@@ -1,3 +1,5 @@
+//! # Macro Magic 🪄
+//!
 //! This crate provides two powerful proc macros, [`#[export_tokens]`](`macro@export_tokens`)
 //! and [`import_tokens!`]. When used in tandem, these two macros allow you to mark items in
 //! other files (and even in other crates, as long as you can modify the source code) for
@@ -18,7 +20,7 @@
 //! the things you can do with `macro_state` you can also achieve with this crate, albeit with
 //! slightly different patterns.
 //!
-//! Macro Magic is designed to work with stable Rust.
+//! `macro_magic` is designed to work with stable Rust.
 
 pub use macro_magic_macros::*;
 

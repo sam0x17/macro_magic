@@ -37,7 +37,7 @@ fn import_tokens_generics() {
     }
     assert_eq!(
         import_tokens!(MyGenericStruct).to_string(),
-        "struct MyGenericStruct < T : Into < String >> { something : T , }"
+        "struct MyGenericStruct < T : Into < String > > { something : T , }"
     );
 }
 

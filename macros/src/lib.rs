@@ -146,8 +146,7 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 /// exporting and importing tokens. README.md also contains valuable information.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let tmp = tokens.clone();
-    let item: Item = parse_macro_input!(tmp as Item);
+    let item: Item = parse_macro_input!(tokens as Item);
     let ident = match item.clone() {
         Item::Const(item_const) => item_const.ident,
         Item::Enum(item_enum) => item_enum.ident,
@@ -207,7 +206,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     };
     let const_name = get_const_name(ident.to_string());
     let const_ident = Ident::new(const_name.as_str(), Span::call_site().into());
-    let source_code = tokens.to_string();
+    let source_code = item.to_token_stream().to_string();
 
     if !attr.is_empty() {
         let export_path = parse_macro_input!(attr as TypePath);

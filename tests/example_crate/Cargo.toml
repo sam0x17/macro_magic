@@ -14,3 +14,5 @@ macro_magic = { version = "0.1.3", path = "../../" }
 [features]
 default = []
 indirect = ["macro_magic/indirect"]
+indirect-write = ["macro_magic/indirect-write"]
+indirect-read = ["macro_magic/indirect-read"]

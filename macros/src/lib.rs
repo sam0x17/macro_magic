@@ -3,21 +3,22 @@ use proc_macro::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
 
-#[cfg(feature = "indirect")]
+#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
+use std::{iter, path::PathBuf};
+
+#[cfg(feature = "indirect-write")]
 use std::{
     fs::{create_dir_all, OpenOptions},
     io::Write,
-    iter,
-    path::PathBuf,
 };
 
-#[cfg(feature = "indirect")]
+#[cfg(feature = "indirect-write")]
 use atomicwrites::{AllowOverwrite, AtomicFile};
 
-#[cfg(feature = "indirect")]
+#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
 const REFS_DIR: &'static str = env!("REFS_DIR");
 
-#[cfg(feature = "indirect")]
+#[cfg(feature = "indirect-write")]
 fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
     let parent = path.parent().unwrap();
     if !parent.exists() {
@@ -38,7 +39,7 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
     Ok(())
 }
 
-#[cfg(feature = "indirect")]
+#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
 fn get_ref_path(type_path: &TypePath) -> PathBuf {
     PathBuf::from_iter(
         iter::once(String::from(REFS_DIR)).chain(
@@ -51,7 +52,7 @@ fn get_ref_path(type_path: &TypePath) -> PathBuf {
     )
 }
 
-#[cfg(feature = "indirect")]
+#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
 fn sanitize_name(name: String) -> String {
     name.replace("::", "-")
         .replace("<", "_LT_")
@@ -210,7 +211,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
     if !attr.is_empty() {
         let export_path = parse_macro_input!(attr as TypePath);
-        #[cfg(feature = "indirect")]
+        #[cfg(feature = "indirect-write")]
         {
             use std::path::Path;
             let refs_dir = Path::new(REFS_DIR);
@@ -225,11 +226,11 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
                 .into()
             };
         }
-        #[cfg(not(feature = "indirect"))]
+        #[cfg(not(feature = "indirect-write"))]
         {
             return Error::new(
                 export_path.span(),
-                "Arguments for #[export_tokens] are only supported when the \"indirect\" feature is enabled"
+                "Arguments for #[export_tokens] are only supported when the \"indirect-write\" feature is enabled"
             )
             .to_compile_error()
             .into();
@@ -344,8 +345,9 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// contained in a crate that is not a dependency of the current crate, so long as the
 /// following requirements are met:
 ///
-/// 1. The "indirect" feature must be enabled for `macro_magic`, otherwise the
-///    `import_tokens_indirect!` macro will not be available.
+/// 1. The "indirect-read" feature must be enabled for `macro_magic`, otherwise the
+///    `import_tokens_indirect!` macro will not be available. This is automatically enabled by
+///    the "indirect" feature.
 /// 2. The source crate and the target crate must be in the same
 ///    [cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html). This is a
 ///    non-negotiable hard requirement when using indirect imports, however direct imports will
@@ -399,14 +401,14 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]
     let path = parse_macro_input!(tokens as TypePath);
-    #[cfg(not(feature = "indirect"))]
+    #[cfg(not(feature = "indirect-read"))]
     return Error::new(
         Span::call_site().into(),
-        "The `import_tokens_indirect!` macro can only be used when the \"indirect\" feature is enabled",
+        "The `import_tokens_indirect!` macro can only be used when the \"indirect-read\" feature is enabled",
     )
     .to_compile_error()
     .into();
-    #[cfg(feature = "indirect")]
+    #[cfg(feature = "indirect-read")]
     {
         let fpath = get_ref_path(&path).to_str().unwrap().to_string();
         let src_qt = quote! {
@@ -462,14 +464,14 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]
     let type_path = parse_macro_input!(tokens as TypePath);
-    #[cfg(not(feature = "indirect"))]
+    #[cfg(not(feature = "indirect-read"))]
     return Error::new(
         Span::call_site().into(),
         "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
     )
     .to_compile_error()
     .into();
-    #[cfg(feature = "indirect")]
+    #[cfg(feature = "indirect-read")]
     {
         let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
         quote! {

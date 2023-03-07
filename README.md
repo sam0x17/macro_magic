@@ -260,7 +260,7 @@ the docs for more info.
 
 By default no features are enabled. The following features are supported:
 
-### Verbose
+### "verbose"
 
 The "verbose" feature is disabled by default. If enabled, some extra debugging information will
 be printed at compile-time indicating when files are written and read from the `REFS_DIR` for
@@ -269,14 +269,29 @@ the purpose of debugging `import_tokens_indirect!`.
 Normal users of the crate should not need this feature, however it is quite useful if things go
 wrong for some reason.
 
-### Indirect
+### "indirect"
 
 The "indirect" feature is disabled by default. When this feature is disabled, only
 `#[export_tokens]`, `import_tokens!` and `re_export_tokens_const!` will be available and the
 `read_namespace!` and `import_tokens_indirect!` macros will not be compiled. When "indirect" is
 enabled, all of these macros will be available and you will be able to do indirect imports and
 read namespaces. Namespaces and indirect imports are _only_ supported when the "indirect"
-feature is enabled.
+feature is enabled (or more specifically, the "indirect-read" feature).
+
+Internally this feature enables both the "indirect-write" and "indirect-read" features.
+
+### "indirect-read"
+
+The "indirect-read" feature will enable indirect imports via `import_tokens_indirect!` and
+`read_namespace!` without also enabling indirect writes via `#[export_tokens]`.
+
+This feature is turned on automatically if "indirect" is enabled.
+
+### "indirect-write"
+
+The "indirect-write" feature will enable direct-import-compatible `#[export_tokens]` support.
+
+This feature is turned on automatically if "indirect" is enabled.
 
 ## Overhead
 
@@ -305,3 +320,17 @@ the context where you try to use this approach.
 For this reason it is recommended to stick with `import_tokens!` unless your use case requires
 the extra flexibility provided by `import_tokens_indirect!`. You can disable
 `import_tokens_indirect!` completely by not opting in to the "indirect" feature.
+
+## no_std
+
+This crate is `no_std` safe if you do not use the "indirect" feature at all, or if you only use
+the "indirect-write" feature when exporting tokens. The "indirect-read" feature brings in some
+std-dependent stuff that will break `no_std` compatibility. This is fine when in a proc macro,
+however since `#[export_tokens]` is used outside proc macro land you will want to only enable
+the "indirect-write" and not enable the "indirect-read" feature when in non-proc-macro
+contexts. If you don't care about `no_std` support, you can simply use the "indirect" feature
+which enables both "indirect-read" and "indirect-write".
+
+TLDR: If you care about `no_std` support and need to use indirect imports/exports, on your
+crate that needs to call `#[export_tokens]`, only enable the "indirect-write" feature, and do
+not enable the "indirect-read" feature. Elsewhere you can do whatever you want.

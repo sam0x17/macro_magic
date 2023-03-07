@@ -1,6 +1,6 @@
 [package]
 name = "macro_magic_macros"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "Proc-macro sub-crate for macro_magic"
 repository = "https://github.com/sam0x17/macro_magic"

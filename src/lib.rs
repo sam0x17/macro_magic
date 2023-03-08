@@ -27,6 +27,11 @@
 //!
 //! `macro_magic` is designed to work with stable Rust.
 
+/// Contains the internal code behind the `macro_magic` macros in a re-usable and extensible
+/// form, including the ability to make custom macros that behave like `#[export_tokens]` and
+/// `import_tokens_indirect!`. This module obeys the "indirect" / "indirect-read"
+/// "indirect-write" feature conventions so make sure the proper features are enabled if you
+/// are trying to access anything involving indirect exports/imports.
 pub mod core {
     pub use macro_magic_core::*;
 }

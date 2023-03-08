@@ -27,6 +27,10 @@
 //!
 //! `macro_magic` is designed to work with stable Rust.
 
+pub mod core {
+    pub use macro_magic_core::*;
+}
+
 pub use macro_magic_macros::*;
 
 #[doc(hidden)]

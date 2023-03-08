@@ -164,3 +164,39 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>, I: D
         quote!(pub const #const_ident: &'static str = #source_code;),
     ))
 }
+
+pub fn import_tokens_indirect_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    #[allow(unused)]
+    let path: TypePath = parse2(tokens.into())?;
+    #[cfg(not(feature = "indirect-read"))]
+    return Err(Error::new(
+        Span::call_site().into(),
+        "The `import_tokens_indirect!` macro can only be used when the \"indirect-read\" feature is enabled",
+    ));
+    #[cfg(feature = "indirect-read")]
+    {
+        let fpath = get_ref_path(&path).to_str().unwrap().to_string();
+        let src_qt = quote! {
+            std::fs::read_to_string(#fpath)
+            .expect(
+                "Indirectly importing the specified item failed. Make \
+                 sure the path is correct and the crate the item appears \
+                 in is being compiled as part of this workspace.",
+            )
+            .parse::<::macro_magic::__private::TokenStream2>()
+            .unwrap()
+        };
+        if cfg!(feature = "verbose") {
+            return Ok(quote! {
+                {
+                    println!("reading {}...", #fpath);
+                    let source = #src_qt;
+                    println!("read {}.", #fpath);
+                    source
+                }
+            });
+        } else {
+            return Ok(quote!(#src_qt));
+        }
+    }
+}

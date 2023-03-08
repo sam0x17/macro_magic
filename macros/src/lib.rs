@@ -243,41 +243,9 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// name of the item you are exporting, however.
 #[proc_macro]
 pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
-    #[allow(unused)]
-    let path = parse_macro_input!(tokens as TypePath);
-    #[cfg(not(feature = "indirect-read"))]
-    return syn::Error::new(
-        quote::__private::Span::call_site().into(),
-        "The `import_tokens_indirect!` macro can only be used when the \"indirect-read\" feature is enabled",
-    )
-    .to_compile_error()
-    .into();
-    #[cfg(feature = "indirect-read")]
-    {
-        let fpath = get_ref_path(&path).to_str().unwrap().to_string();
-        let src_qt = quote! {
-            std::fs::read_to_string(#fpath)
-            .expect(
-                "Indirectly importing the specified item failed. Make \
-                 sure the path is correct and the crate the item appears \
-                 in is being compiled as part of this workspace.",
-            )
-            .parse::<::macro_magic::__private::TokenStream2>()
-            .unwrap()
-        };
-        if cfg!(feature = "verbose") {
-            return quote! {
-                {
-                    println!("reading {}...", #fpath);
-                    let source = #src_qt;
-                    println!("read {}.", #fpath);
-                    source
-                }
-            }
-            .into();
-        } else {
-            return quote!(#src_qt).into();
-        }
+    match import_tokens_indirect_internal(tokens) {
+        Ok(res) => res.into(),
+        Err(e) => e.to_compile_error().into(),
     }
 }
 

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "core",
     "macros",
     "tests/example_crate",
     "tests/example_crate2",
@@ -23,6 +24,7 @@ description = "Allows the exporting and importing of the tokens of items across 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
 macro_magic_macros = { version = "0.1.4", path = "./macros" }
+macro_magic_core = { version = "0.1.4", path = "./core" }
 
 [dev-dependencies]
 mm_example_crate = { version = "*", path = "./tests/example_crate" }
@@ -31,22 +33,28 @@ mm_example_crate2 = { version = "*", path = "./tests/example_crate2" }
 
 [features]
 default = []
-verbose = ["macro_magic_macros/verbose"]
+verbose = [
+    "macro_magic_macros/verbose",
+    "macro_magic_core/verbose",
+]
 indirect = [
+    "macro_magic_core/indirect",
     "macro_magic_macros/indirect",
     "mm_example_proc_macro/indirect",
     "mm_example_crate/indirect",
-    "mm_example_crate2/indirect"
+    "mm_example_crate2/indirect",
 ]
 indirect-write = [
     "macro_magic_macros/indirect-write",
+    "macro_magic_core/indirect-write",
     "mm_example_proc_macro/indirect-write",
     "mm_example_crate/indirect-write",
-    "mm_example_crate2/indirect-write"
+    "mm_example_crate2/indirect-write",
 ]
 indirect-read = [
     "macro_magic_macros/indirect-read",
+    "macro_magic_core/indirect-read",
     "mm_example_proc_macro/indirect-read",
     "mm_example_crate/indirect-read",
-    "mm_example_crate2/indirect-read"
+    "mm_example_crate2/indirect-read",
 ]

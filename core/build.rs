@@ -1,7 +1,7 @@
-use std::fs::{create_dir, remove_dir_all};
-use std::path::Path;
-
+#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
 fn main() {
+    use std::fs::{create_dir, remove_dir_all};
+    use std::path::Path;
     let out_dir_string = std::env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(out_dir_string.as_str());
     assert!(out_dir.exists());
@@ -18,3 +18,6 @@ fn main() {
     assert!(refs_dir.is_dir());
     println!("cargo:rustc-env=REFS_DIR={}", refs_dir.display());
 }
+
+#[cfg(not(any(feature = "indirect-write", feature = "indirect-read")))]
+fn main() {}

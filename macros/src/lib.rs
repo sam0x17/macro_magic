@@ -1,80 +1,9 @@
 extern crate proc_macro;
-use proc_macro::{Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Error, Ident, Item, Path, TypePath};
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, TypePath};
 
-#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
-use std::{iter, path::PathBuf};
-
-#[cfg(feature = "indirect-write")]
-use std::{
-    fs::{create_dir_all, OpenOptions},
-    io::Write,
-};
-
-#[cfg(feature = "indirect-write")]
-use atomicwrites::{AllowOverwrite, AtomicFile};
-
-#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
-const REFS_DIR: &'static str = env!("REFS_DIR");
-
-#[cfg(feature = "indirect-write")]
-fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Result<()> {
-    let parent = path.parent().unwrap();
-    if !parent.exists() {
-        #[cfg(feature = "verbose")]
-        println!("directory {} doesn't exist, creating...", parent.display());
-        create_dir_all(parent)?;
-    }
-    #[cfg(feature = "verbose")]
-    println!("writing {}...", path.display());
-    let data: String = source.into();
-    let af = AtomicFile::new(path, AllowOverwrite);
-    af.write_with_options(
-        |f| f.write_all(data.as_bytes()),
-        OpenOptions::new().write(true).create(true).clone(),
-    )?;
-    #[cfg(feature = "verbose")]
-    println!("wrote {}.", path.display());
-    Ok(())
-}
-
-#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
-fn get_ref_path(type_path: &TypePath) -> PathBuf {
-    PathBuf::from_iter(
-        iter::once(String::from(REFS_DIR)).chain(
-            type_path
-                .path
-                .segments
-                .iter()
-                .map(|seg| sanitize_name(seg.to_token_stream().to_string())),
-        ),
-    )
-}
-
-#[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
-fn sanitize_name(name: String) -> String {
-    name.replace("::", "-")
-        .replace("<", "_LT_")
-        .replace(">", "_GT_")
-        .replace(" ", "")
-}
-
-fn get_const_name(name: String) -> String {
-    format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
-}
-
-fn get_const_path(path: &TypePath) -> Result<Path, Error> {
-    let mut path = path.path.clone();
-    let Some(mut last) = path.segments.last_mut() else {
-        return Err(Error::new(path.span(), "Empty paths cannot be expanded!"))
-    };
-    last.ident = Ident::new(
-        get_const_name(last.to_token_stream().to_string()).as_str(),
-        Span::call_site().into(),
-    );
-    Ok(path)
-}
+use macro_magic_core::*;
 
 /// This attribute can be attached to any [`syn::Item`]-compatible source code item, with the
 /// exception of [`ForeignMod`](`syn::ItemForeignMod`), [`Impl`](`syn::ItemImpl`),
@@ -147,101 +76,16 @@ fn get_const_path(path: &TypePath) -> Result<Path, Error> {
 /// exporting and importing tokens. README.md also contains valuable information.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let item: Item = parse_macro_input!(tokens as Item);
-    let ident = match item.clone() {
-        Item::Const(item_const) => item_const.ident,
-        Item::Enum(item_enum) => item_enum.ident,
-        Item::ExternCrate(item_extern_crate) => item_extern_crate.ident,
-        Item::Fn(item_fn) => item_fn.sig.ident,
-        Item::ForeignMod(item_foreign_mod) => {
-            return Error::new(
-                item_foreign_mod.span(),
-                "#[export_tokens] cannot be applied to a foreign module",
-            )
-            .to_compile_error()
-            .into()
-        }
-        Item::Impl(item_impl) => {
-            return Error::new(
-                item_impl.span(),
-                "#[export_tokens] cannot be applied to an impl",
-            )
-            .to_compile_error()
-            .into()
-        }
-        Item::Macro(item_macro) => match item_macro.ident {
-            Some(ident) => ident,
-            None => {
-                return Error::new(
-                    item_macro.span(),
-                    "#[export_tokens] cannot be applied to unnamed decl macros",
-                )
-                .to_compile_error()
-                .into()
-            }
-        },
-        Item::Macro2(item_macro2) => item_macro2.ident,
-        Item::Mod(item_mod) => item_mod.ident,
-        Item::Static(item_static) => item_static.ident,
-        Item::Struct(item_struct) => item_struct.ident,
-        Item::Trait(item_trait) => item_trait.ident,
-        Item::TraitAlias(item_trait_alias) => item_trait_alias.ident,
-        Item::Type(item_type) => item_type.ident,
-        Item::Union(item_union) => item_union.ident,
-        Item::Use(item_use) => {
-            return Error::new(
-                item_use.span(),
-                "#[export_tokens] cannot be applied to a use declaration",
-            )
-            .to_compile_error()
-            .into()
-        }
-        _ => {
-            return Error::new(
-                item.span(),
-                "#[export_tokens] cannot be applied to this item",
-            )
-            .to_compile_error()
-            .into()
-        }
+    let (item, const_decl) = match export_tokens_internal(tokens, attr, "#[export_tokens]") {
+        Ok((item, const_decl)) => (item, const_decl),
+        Err(e) => return e.to_compile_error().into(),
     };
-    let const_name = get_const_name(ident.to_string());
-    let const_ident = Ident::new(const_name.as_str(), Span::call_site().into());
-    let source_code = item.to_token_stream().to_string();
-
-    if !attr.is_empty() {
-        let export_path = parse_macro_input!(attr as TypePath);
-        #[cfg(feature = "indirect-write")]
-        {
-            use std::path::Path;
-            let refs_dir = Path::new(REFS_DIR);
-            assert!(refs_dir.exists());
-            let fpath = get_ref_path(&export_path);
-            let Ok(_) = write_file(&fpath, &source_code) else {
-                return Error::new(
-                    export_path.path.segments.last().span(),
-                    "Failed to write to the specified namespace, is it already occupied?",
-                )
-                .to_compile_error()
-                .into()
-            };
-        }
-        #[cfg(not(feature = "indirect-write"))]
-        {
-            return Error::new(
-                export_path.span(),
-                "Arguments for #[export_tokens] are only supported when the \"indirect-write\" feature is enabled"
-            )
-            .to_compile_error()
-            .into();
-        }
-    }
     quote! {
         #[allow(dead_code)]
         #item
         #[doc(hidden)]
         #[allow(dead_code)]
-        pub const #const_ident: &'static str = #source_code;
+        #const_decl
     }
     .into()
 }
@@ -402,8 +246,8 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]
     let path = parse_macro_input!(tokens as TypePath);
     #[cfg(not(feature = "indirect-read"))]
-    return Error::new(
-        Span::call_site().into(),
+    return syn::Error::new(
+        quote::__private::Span::call_site().into(),
         "The `import_tokens_indirect!` macro can only be used when the \"indirect-read\" feature is enabled",
     )
     .to_compile_error()
@@ -465,8 +309,8 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
     #[allow(unused)]
     let type_path = parse_macro_input!(tokens as TypePath);
     #[cfg(not(feature = "indirect-read"))]
-    return Error::new(
-        Span::call_site().into(),
+    return syn::Error::new(
+        quote::__private::Span::call_site().into(),
         "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
     )
     .to_compile_error()

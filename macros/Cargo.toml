@@ -15,11 +15,15 @@ proc-macro = true
 [dependencies]
 quote = "1.0"
 syn = { version = "1.0", features = ["full"] }
-atomicwrites = { version = "0.4.0", optional = true }
+macro_magic_core = { version = "0.1.4", path = "../core"}
 
 [features]
 default = []
 verbose = []
-indirect = ["indirect-read", "indirect-write"]
-indirect-read = []
-indirect-write = ["dep:atomicwrites"]
+indirect = [
+    "indirect-read",
+    "indirect-write",
+    "macro_magic_core/indirect"
+]
+indirect-read = ["macro_magic_core/indirect-read"]
+indirect-write = ["macro_magic_core/indirect-write"]

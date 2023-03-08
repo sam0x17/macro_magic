@@ -12,7 +12,7 @@
 //! the path to an item you have exported.
 //!
 //! Two advanced macros, [`import_tokens_indirect!`] and [`read_namespace!`] are also provided
-//! when the "indirect" feature is enabled. These macro are capable of going across crate
+//! when the "indirect" feature is enabled. These macros are capable of going across crate
 //! boundaries without complicating your dependencies and can return collections of tokens
 //! based on a shared common prefix.
 //!

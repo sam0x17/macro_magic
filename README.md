@@ -11,7 +11,7 @@ crates, as long as you can modify the source code) for export. The tokens of the
 then be imported by the `import_tokens!` macro using the path to an item you have exported.
 
 Two advanced macros, `import_tokens_indirect!` and `read_namespace!` are also provided when the
-"indirect" feature is enabled. These macro are capable of going across crate boundaries without
+"indirect" feature is enabled. These macros are capable of going across crate boundaries without
 complicating your dependencies and can return collections of tokens based on a shared common
 prefix.
 

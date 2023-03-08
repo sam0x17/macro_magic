@@ -200,3 +200,48 @@ pub fn import_tokens_indirect_internal<T: Into<TokenStream2>>(tokens: T) -> Resu
         }
     }
 }
+
+pub fn read_namespace_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    #[allow(unused)]
+    let type_path: TypePath = parse2(tokens.into())?;
+    #[cfg(not(feature = "indirect-read"))]
+    return Err(Error::new(
+        Span::call_site().into(),
+        "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
+    ));
+    #[cfg(feature = "indirect-read")]
+    {
+        let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
+        Ok(quote! {
+            {
+                use ::macro_magic::__private::TokenStream2;
+                let closure = || -> std::io::Result<Vec<(String, TokenStream2)>> {
+                    let namespace_path = #ref_path;
+                    let mut results: Vec<(String, TokenStream2)> = Vec::new();
+                    for entry in std::fs::read_dir(&namespace_path)? {
+                        let entry = entry?;
+                        if entry.path().is_dir() {
+                            continue;
+                        }
+                        let source = std::fs::read_to_string(entry.path())?;
+                        let tokens2 = source.parse::<TokenStream2>().unwrap();
+                        let name = entry
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_owned()
+                        .to_string()
+                        .replace("-", "::")
+                        .replace("_LT_", "<")
+                        .replace("_GT_", ">");
+                        results.push((name, tokens2));
+                    }
+                    results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                    Ok(results)
+                };
+                closure()
+            }
+        })
+    }
+}

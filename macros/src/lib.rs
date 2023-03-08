@@ -274,50 +274,9 @@ pub fn import_tokens_indirect(tokens: TokenStream) -> TokenStream {
 /// order to be consistent.
 #[proc_macro]
 pub fn read_namespace(tokens: TokenStream) -> TokenStream {
-    #[allow(unused)]
-    let type_path = parse_macro_input!(tokens as TypePath);
-    #[cfg(not(feature = "indirect-read"))]
-    return syn::Error::new(
-        quote::__private::Span::call_site().into(),
-        "The `read_namespace!` macro can only be used when the \"indirect\" feature is enabled",
-    )
-    .to_compile_error()
-    .into();
-    #[cfg(feature = "indirect-read")]
-    {
-        let ref_path = get_ref_path(&type_path).to_str().unwrap().to_string();
-        quote! {
-            {
-                use ::macro_magic::__private::TokenStream2;
-                let closure = || -> std::io::Result<Vec<(String, TokenStream2)>> {
-                    let namespace_path = #ref_path;
-                    let mut results: Vec<(String, TokenStream2)> = Vec::new();
-                    for entry in std::fs::read_dir(&namespace_path)? {
-                        let entry = entry?;
-                        if entry.path().is_dir() {
-                            continue;
-                        }
-                        let source = std::fs::read_to_string(entry.path())?;
-                        let tokens2 = source.parse::<TokenStream2>().unwrap();
-                        let name = entry
-                        .path()
-                        .file_name()
-                        .unwrap()
-                        .to_string_lossy()
-                        .to_owned()
-                        .to_string()
-                        .replace("-", "::")
-                        .replace("_LT_", "<")
-                        .replace("_GT_", ">");
-                        results.push((name, tokens2));
-                    }
-                    results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-                    Ok(results)
-                };
-                closure()
-            }
-        }
-        .into()
+    match read_namespace_internal(tokens) {
+        Ok(res) => res.into(),
+        Err(e) => e.to_compile_error().into(),
     }
 }
 

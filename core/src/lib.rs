@@ -41,6 +41,7 @@ fn write_file<T: Into<String>>(path: &std::path::Path, source: T) -> std::io::Re
     Ok(())
 }
 
+/// Helper method used to get the path to the data file corresponding with an indrect [`TypePath`]
 #[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
 pub fn get_ref_path(type_path: &TypePath) -> PathBuf {
     PathBuf::from_iter(
@@ -62,10 +63,14 @@ fn sanitize_name(name: String) -> String {
         .replace(" ", "")
 }
 
+/// Helper method used to generate the name of the const used by direct imports to store the
+/// raw source code of an item before it is converted to a [`TokenStream2`] by the
+/// `import_tokens!` macro.
 pub fn get_const_name(name: String) -> String {
     format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
 }
 
+/// Helper method used to generate the full path of a direct import const.
 pub fn get_const_path(path: &TypePath) -> core::result::Result<Path, Error> {
     let mut path = path.path.clone();
     let Some(mut last) = path.segments.last_mut() else {
@@ -78,6 +83,15 @@ pub fn get_const_path(path: &TypePath) -> core::result::Result<Path, Error> {
     Ok(path)
 }
 
+/// The full internal implementation behind `#[export_tokens]`. This can be used to make custom
+/// `#[export_tokens]` macros. The `feature_name` attribute determines the name that will be
+/// displayed in error messages. When using the `#[export_tokens]` macro directly,
+/// `feature_name` is set to `"#[export_tokens]"`.
+///
+/// Returns a `Result<Item, TokenStream2>` where the first item is `tokens` parsed as an
+/// [`Item`] and the second item is the const declaration that would be generated for a
+/// _direct_ import as a [`TokenStream2`]. Calling this function will write to the appropriate
+/// item storage if the "indirect-write" or "indirect" features are enabled.
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>, I: Display>(
     tokens: T,
     attr: E,
@@ -165,6 +179,8 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>, I: D
     ))
 }
 
+/// The full internal implementation behind the `import_tokens_indirect!` macro. Can be used to
+/// make custom/re-branded macros that behave like `import_tokens_indirect!`.
 pub fn import_tokens_indirect_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     #[allow(unused)]
     let path: TypePath = parse2(tokens.into())?;
@@ -201,6 +217,13 @@ pub fn import_tokens_indirect_internal<T: Into<TokenStream2>>(tokens: T) -> Resu
     }
 }
 
+/// The full internal implementation behind the `read_namespace_internal!` macro. Can be used to
+/// make custom/re-branded macros that behave like `read_namespace_internal!`.
+///
+/// Note that the returned [`TokenStream2`] consists of the tokens of runtime code that, when
+/// run, results in a `Result<Vec<TokenStream2>>` of all the tokens in the specified namespace.
+/// This function does not directly retrieve the tokens (if you need that, just call
+/// `import_tokens_indirect` directly!).
 pub fn read_namespace_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     #[allow(unused)]
     let type_path: TypePath = parse2(tokens.into())?;

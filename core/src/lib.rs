@@ -50,14 +50,23 @@ pub fn get_ref_path(type_path: &TypePath) -> PathBuf {
                 .path
                 .segments
                 .iter()
-                .map(|seg| sanitize_name(seg.to_token_stream().to_string())),
+                .map(|seg| sanitize_name_file(seg.to_token_stream().to_string())),
         ),
     )
 }
 
+/// Helper method used to sanitize a path name for use as a file name
 #[cfg(any(feature = "indirect-write", feature = "indirect-read"))]
-fn sanitize_name(name: String) -> String {
+fn sanitize_name_file(name: String) -> String {
     name.replace("::", "-")
+        .replace("<", "_LT_")
+        .replace(">", "_GT_")
+        .replace(" ", "")
+}
+
+/// Helper method used to sanitize a path name for use as a constant name
+fn sanitize_name_constant(name: String) -> String {
+    name.replace("::", "__")
         .replace("<", "_LT_")
         .replace(">", "_GT_")
         .replace(" ", "")
@@ -67,7 +76,10 @@ fn sanitize_name(name: String) -> String {
 /// raw source code of an item before it is converted to a [`TokenStream2`] by the
 /// `import_tokens!` macro.
 pub fn get_const_name(name: String) -> String {
-    format!("__EXPORT_TOKENS__{}", name.replace(" ", "").to_uppercase())
+    format!(
+        "__EXPORT_TOKENS__{}",
+        sanitize_name_constant(name).to_uppercase()
+    )
 }
 
 /// Helper method used to generate the full path of a direct import const.
@@ -97,82 +109,65 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>, I: D
     attr: E,
     feature_name: I,
 ) -> Result<(Item, TokenStream2)> {
+    let attr = attr.into();
     let item: Item = parse2(tokens.into())?;
     let ident = match item.clone() {
-        Item::Const(item_const) => item_const.ident,
-        Item::Enum(item_enum) => item_enum.ident,
-        Item::ExternCrate(item_extern_crate) => item_extern_crate.ident,
-        Item::Fn(item_fn) => item_fn.sig.ident,
-        Item::ForeignMod(item_foreign_mod) => {
-            return Err(Error::new(
-                item_foreign_mod.span(),
-                format!("{} cannot be applied to a foreign module", feature_name),
-            ))
-        }
-        Item::Impl(item_impl) => {
-            return Err(Error::new(
-                item_impl.span(),
-                format!("{} cannot be applied to an impl", feature_name),
-            ))
-        }
-        Item::Macro(item_macro) => match item_macro.ident {
-            Some(ident) => ident,
-            None => {
-                return Err(Error::new(
-                    item_macro.span(),
-                    format!("{} cannot be applied to unnamed decl macros", feature_name),
-                ))
+        Item::Const(item_const) => Some(item_const.ident),
+        Item::Enum(item_enum) => Some(item_enum.ident),
+        Item::ExternCrate(item_extern_crate) => Some(item_extern_crate.ident),
+        Item::Fn(item_fn) => Some(item_fn.sig.ident),
+        Item::Macro(item_macro) => item_macro.ident, // note this one might not have an Ident as well
+        Item::Macro2(item_macro2) => Some(item_macro2.ident),
+        Item::Mod(item_mod) => Some(item_mod.ident),
+        Item::Static(item_static) => Some(item_static.ident),
+        Item::Struct(item_struct) => Some(item_struct.ident),
+        Item::Trait(item_trait) => Some(item_trait.ident),
+        Item::TraitAlias(item_trait_alias) => Some(item_trait_alias.ident),
+        Item::Type(item_type) => Some(item_type.ident),
+        Item::Union(item_union) => Some(item_union.ident),
+        // Item::ForeignMod(item_foreign_mod) => None,
+        // Item::Use(item_use) => None,
+        // Item::Impl(item_impl) => None,
+        _ => None,
+    };
+    let source_code = item.to_token_stream().to_string();
+    let export_path: Option<TypePath> = match attr.is_empty() {
+        true => None,
+        false => {
+            let export_path: TypePath = parse2(attr)?;
+            #[cfg(feature = "indirect-write")]
+            {
+                use std::path::Path;
+                let refs_dir = Path::new(REFS_DIR);
+                assert!(refs_dir.exists());
+                let fpath = get_ref_path(&export_path);
+                let Ok(_) = write_file(&fpath, &source_code) else {
+                    return Err(Error::new(
+                        export_path.path.segments.last().span(),
+                        "Failed to write to the specified namespace, is it already occupied?",
+                    ))
+                };
             }
-        },
-        Item::Macro2(item_macro2) => item_macro2.ident,
-        Item::Mod(item_mod) => item_mod.ident,
-        Item::Static(item_static) => item_static.ident,
-        Item::Struct(item_struct) => item_struct.ident,
-        Item::Trait(item_trait) => item_trait.ident,
-        Item::TraitAlias(item_trait_alias) => item_trait_alias.ident,
-        Item::Type(item_type) => item_type.ident,
-        Item::Union(item_union) => item_union.ident,
-        Item::Use(item_use) => {
-            return Err(Error::new(
-                item_use.span(),
-                format!("{} cannot be applied to a use declaration", feature_name),
-            ))
-        }
-        _ => {
-            return Err(Error::new(
-                item.span(),
-                format!("{} cannot be applied to this item", feature_name),
-            ))
+            Some(export_path)
         }
     };
-    let const_name = get_const_name(ident.to_string());
-    let const_ident = Ident::new(const_name.as_str(), Span::call_site());
-    let source_code = item.to_token_stream().to_string();
-
-    let attr = attr.into();
-    if !attr.is_empty() {
-        let export_path: TypePath = parse2(attr)?;
-        #[cfg(feature = "indirect-write")]
-        {
-            use std::path::Path;
-            let refs_dir = Path::new(REFS_DIR);
-            assert!(refs_dir.exists());
-            let fpath = get_ref_path(&export_path);
-            let Ok(_) = write_file(&fpath, &source_code) else {
+    let const_name = get_const_name(match export_path {
+        Some(export_path) => export_path.to_token_stream().to_string(),
+        None => match ident {
+            Some(ident) => ident.to_string(),
+            None => {
                 return Err(Error::new(
-                    export_path.path.segments.last().span(),
-                    "Failed to write to the specified namespace, is it already occupied?",
-                ))
-            };
-        }
-        #[cfg(not(feature = "indirect-write"))]
-        {
-            return Err(Error::new(
-                export_path.span(),
-                format!("Arguments for {} are only supported when the \"indirect-write\" feature is enabled", feature_name)
-            ));
-        }
-    }
+                    item.span(),
+                    format!(
+                        "Automatic name detection is not supported for this item. You must provide {} \
+                        with an argument specifying a disambiguation name",
+                        feature_name
+                    ),
+                ));
+            }
+        },
+    });
+    let const_ident = Ident::new(const_name.as_str(), Span::call_site());
     Ok((
         item,
         quote!(pub const #const_ident: &'static str = #source_code;),

@@ -5,11 +5,13 @@ use syn::{parse_macro_input, TypePath};
 
 use macro_magic_core::*;
 
-/// This attribute can be attached to any [`syn::Item`]-compatible source code item, with the
-/// exception of [`ForeignMod`](`syn::ItemForeignMod`), [`Impl`](`syn::ItemImpl`),
-/// [`Macro`](`syn::ItemMacro`), [`Use`](`syn::ItemUse`), and
-/// [`Verbatim`](`syn::Item::Verbatim`). Attaching to an item will "export" that item so that
-/// it can be imported elsewhere by name via the [`import_tokens!`] macro.
+/// This attribute can be attached to any [`syn::Item`]-compatible source code item without
+/// specifying any arguments, with the exception of [`ForeignMod`](`syn::ItemForeignMod`),
+/// [`Impl`](`syn::ItemImpl`), [`Macro`](`syn::ItemMacro`) (except when it has a defined
+/// [`syn::Ident`]), [`Use`](`syn::ItemUse`), and [`Verbatim`](`syn::Item::Verbatim`) which all
+/// require a disambiguation path to be specified as an argument. Attaching to an item will
+/// "export" that item so that it can be imported elsewhere by name via the [`import_tokens!`]
+/// macro.
 ///
 /// For example, this would export a function named `foo`:
 /// ```ignore
@@ -45,7 +47,9 @@ use macro_magic_core::*;
 /// This path will be used to disambiguate `fizz_buzz` from other `fizz_buzz` items that may
 /// have been exported from different paths when you use [`import_tokens!`] to perform an
 /// indirect import. Direct imports only make use of the last segment of this name, if it is
-/// specified, while indirect imports will use the whole path.
+/// specified, while indirect imports will use the whole path. If indirect imports are
+/// disabled, you will get a compiler error if you try to specify a multi-level path, since
+/// there is no way for direct imports to make use of anything but the last segment.
 ///
 /// Also note that direct imports are subject to visibility restrictions (i.e. they won't work
 /// if you aren't in a public module), whereas indirect imports completely bypass visibility

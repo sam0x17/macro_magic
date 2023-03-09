@@ -111,3 +111,8 @@ fn read_namespace_green() {
 fn read_namespace_foo_bar() {
     read_namespace_test_foo_bar!();
 }
+
+#[test]
+fn import_impl() {
+    read_trait_impl!();
+}

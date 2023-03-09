@@ -49,3 +49,10 @@ pub fn read_namespace_test_foo_bar(tokens: TokenStream) -> TokenStream {
     assert_eq!(items.len(), 0);
     tokens.into()
 }
+
+#[proc_macro]
+pub fn read_trait_impl(tokens: TokenStream) -> TokenStream {
+    let item_impl_tokens = import_tokens!(mm_example_crate::ImplMyCoolTraitForFooBar);
+    assert_eq!(item_impl_tokens.is_empty(), false);
+    tokens
+}

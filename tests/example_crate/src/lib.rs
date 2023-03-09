@@ -27,3 +27,23 @@ pub mod cool_module {
         type SomeType;
     }
 }
+
+trait MyCoolTrait<T, E> {
+    fn foo(input: T) -> T;
+    fn bar(input: E) -> E;
+}
+
+struct FooBar<I> {
+    _data: I,
+}
+
+#[export_tokens(ImplMyCoolTraitForFooBar)]
+impl<T, E, I> MyCoolTrait<T, E> for FooBar<I> {
+    fn foo(input: T) -> T {
+        input
+    }
+
+    fn bar(input: E) -> E {
+        input
+    }
+}

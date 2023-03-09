@@ -37,8 +37,24 @@ struct FooBar<I> {
     _data: I,
 }
 
+pub struct DooDad<I> {
+    _data: I,
+}
+
 #[export_tokens(ImplMyCoolTraitForFooBar)]
 impl<T, E, I> MyCoolTrait<T, E> for FooBar<I> {
+    fn foo(input: T) -> T {
+        input
+    }
+
+    fn bar(input: E) -> E {
+        input
+    }
+}
+
+#[cfg(feature = "indirect-write")]
+#[export_tokens(some::path::ImplMyCoolTraitForDooDad)]
+impl<T, E, I> MyCoolTrait<T, E> for DooDad<I> {
     fn foo(input: T) -> T {
         input
     }

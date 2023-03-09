@@ -152,7 +152,16 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>, I: D
         }
     };
     let const_name = get_const_name(match export_path {
-        Some(export_path) => export_path.to_token_stream().to_string(),
+        Some(export_path) => {
+            #[cfg(not(feature = "indirect-write"))]
+            if export_path.path.segments.len() > 1 {
+                return Err(Error::new(
+                    export_path.span(),
+                    "Complex paths (i.e. containing `::`) are not allowed when the \"indirect-write]\" feature is enabled",
+                ));
+            }
+            export_path.to_token_stream().to_string()
+        }
         None => match ident {
             Some(ident) => ident.to_string(),
             None => {

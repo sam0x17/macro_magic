@@ -112,6 +112,7 @@ fn read_namespace_foo_bar() {
     read_namespace_test_foo_bar!();
 }
 
+#[cfg(feature = "indirect")]
 #[test]
 fn import_impl() {
     read_trait_impl!();

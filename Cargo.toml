@@ -9,7 +9,7 @@ members = [
 
 [package]
 name = "macro_magic"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["sam0x17"]
 license = "MIT"
@@ -23,8 +23,8 @@ description = "Allows the exporting and importing of the tokens of items across 
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
-macro_magic_macros = { version = "0.1.5", path = "./macros" }
-macro_magic_core = { version = "0.1.5", path = "./core" }
+macro_magic_macros = { version = "0.1.6", path = "./macros" }
+macro_magic_core = { version = "0.1.6", path = "./core" }
 
 [dev-dependencies]
 mm_example_crate = { version = "*", path = "./tests/example_crate" }

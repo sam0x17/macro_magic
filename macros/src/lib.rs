@@ -283,8 +283,8 @@ pub fn read_namespace(tokens: TokenStream) -> TokenStream {
 /// This convenient macro can be used to publicly re-export an item that has been exported via
 /// [`#[export_tokens]`](`macro@export_tokens`) when doing direct imports.
 ///
-/// See the documentation for [`#[export_tokens]`](`macro@export_tokens`) and
-/// [`import_tokens!`] for more information.
+/// Note that this macro *will not work* with indirect imports. See the documentation for
+/// [`#[export_tokens]`](`macro@export_tokens`) and [`import_tokens!`] for more information.
 ///
 /// For example, assume in the module `my::cool_module` you have the following code:
 /// ```ignore

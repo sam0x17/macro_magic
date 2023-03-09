@@ -27,9 +27,9 @@ macro_magic_macros = { version = "0.1.6", path = "./macros" }
 macro_magic_core = { version = "0.1.6", path = "./core" }
 
 [dev-dependencies]
-mm_example_crate = { version = "*", path = "./tests/example_crate" }
-mm_example_proc_macro = { version = "*", path = "./tests/example_proc_macro" }
-mm_example_crate2 = { version = "*", path = "./tests/example_crate2" }
+# mm_example_crate = { version = "*", path = "./tests/example_crate" }
+# mm_example_proc_macro = { version = "*", path = "./tests/example_proc_macro" }
+# mm_example_crate2 = { version = "*", path = "./tests/example_crate2" }
 
 [features]
 default = []
@@ -40,21 +40,21 @@ verbose = [
 indirect = [
     "macro_magic_core/indirect",
     "macro_magic_macros/indirect",
-    "mm_example_proc_macro/indirect",
-    "mm_example_crate/indirect",
-    "mm_example_crate2/indirect",
+    # "mm_example_proc_macro/indirect",
+    # "mm_example_crate/indirect",
+    # "mm_example_crate2/indirect",
 ]
 indirect-write = [
     "macro_magic_macros/indirect-write",
     "macro_magic_core/indirect-write",
-    "mm_example_proc_macro/indirect-write",
-    "mm_example_crate/indirect-write",
-    "mm_example_crate2/indirect-write",
+    # "mm_example_proc_macro/indirect-write",
+    # "mm_example_crate/indirect-write",
+    # "mm_example_crate2/indirect-write",
 ]
 indirect-read = [
     "macro_magic_macros/indirect-read",
     "macro_magic_core/indirect-read",
-    "mm_example_proc_macro/indirect-read",
-    "mm_example_crate/indirect-read",
-    "mm_example_crate2/indirect-read",
+    # "mm_example_proc_macro/indirect-read",
+    # "mm_example_crate/indirect-read",
+    # "mm_example_crate2/indirect-read",
 ]

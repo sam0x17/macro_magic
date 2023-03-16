@@ -7,8 +7,8 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  cargo-test-normal:
-    name: cargo test (normal)
+  cargo-test:
+    name: cargo test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,36 +17,6 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: cargo test
         run: cargo test --workspace
-  cargo-test-indirect:
-    name: cargo test (indirect)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up Rust Toolchain
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-      - name: cargo test
-        run: cargo test --workspace --features=indirect
-  cargo-test-indirect-read:
-    name: cargo test (indirect-read)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up Rust Toolchain
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-      - name: cargo test
-        run: cargo test --workspace --features=indirect-read
-  cargo-test-indirect-write:
-    name: cargo test (indirect-write)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up Rust Toolchain
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-      - name: cargo test
-        run: cargo test --workspace --features=indirect-write
   cargo-fmt:
     name: cargo fmt
     runs-on: ubuntu-latest

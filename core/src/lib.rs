@@ -2,15 +2,37 @@ use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::parse2;
 use syn::{
     parse::Nothing,
     parse_macro_input,
     token::{Brace, Comma},
-    FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
+    Ident, Item, Path, Result, Token,
 };
+
+#[derive(Parse)]
+pub struct ImportTokensArgs {
+    _let: Token![let],
+    tokens_var_ident: Ident,
+    _eq: Token![=],
+    source_path: Path,
+}
+
+#[derive(Parse)]
+pub struct ImportedTokensBraceContents {
+    tokens_var_ident: Ident,
+    _comma: Comma,
+    item: Item,
+}
+
+#[derive(Parse)]
+pub struct ImportedTokensBrace {
+    #[brace]
+    _braces: Brace,
+    #[inside(_braces)]
+    contents: ImportedTokensBraceContents,
+}
 
 pub fn flatten_ident(ident: &Ident) -> Ident {
     Ident::new(

@@ -1,6 +1,8 @@
+use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
+use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::parse2;
 use syn::{
@@ -10,14 +12,22 @@ use syn::{
     FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
 };
 
+pub fn flatten_ident(ident: &Ident) -> Ident {
+    Ident::new(
+        ident.to_string().to_case(Case::Snake).as_str(),
+        ident.span(),
+    )
+}
+
 pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
+    let ident = flatten_ident(&ident);
     let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
-    tokens: T,
-    attr: E,
+    attr: T,
+    tokens: E,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
     let item: Item = parse2(tokens.into())?;
@@ -42,11 +52,15 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     };
     let ident = match ident {
         Some(ident) => {
-            parse2::<Nothing>(attr)?;
-            ident
+            if let Ok(_) = parse2::<Nothing>(attr.clone()) {
+                ident
+            } else {
+                parse2::<Ident>(attr)?
+            }
         }
         None => parse2::<Ident>(attr)?,
     };
+    let ident = flatten_ident(&ident);
     Ok(quote! {
         #[macro_export]
         macro_rules! #ident {
@@ -62,4 +76,71 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         #[allow(unused)]
         #item
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_tokens_internal_missing_ident() {
+        assert!(export_tokens_internal(quote!(), quote!(impl MyTrait for Something)).is_err());
+    }
+
+    #[test]
+    fn export_tokens_internal_normal_no_ident() {
+        assert!(export_tokens_internal(
+            quote!(),
+            quote!(
+                struct MyStruct {}
+            )
+        )
+        .unwrap()
+        .to_string()
+        .contains("my_struct"));
+    }
+
+    #[test]
+    fn export_tokens_internal_normal_ident() {
+        assert!(export_tokens_internal(
+            quote!(some_name),
+            quote!(
+                struct Something {}
+            ),
+        )
+        .unwrap()
+        .to_string()
+        .contains("some_name"));
+    }
+
+    #[test]
+    fn export_tokens_internal_generics_no_ident() {
+        assert!(export_tokens_internal(
+            quote!(),
+            quote!(
+                struct MyStruct<T> {}
+            ),
+        )
+        .unwrap()
+        .to_string()
+        .contains("my_struct {"));
+    }
+
+    #[test]
+    fn export_tokens_internal_bad_ident() {
+        assert!(export_tokens_internal(
+            quote!(Something<T>),
+            quote!(
+                struct MyStruct {}
+            ),
+        )
+        .is_err());
+        assert!(export_tokens_internal(
+            quote!(some::path),
+            quote!(
+                struct MyStruct {}
+            ),
+        )
+        .is_err());
+    }
 }

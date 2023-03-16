@@ -4,6 +4,7 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use syn::parse2;
+use syn::parse_quote;
 use syn::{
     parse::Nothing,
     parse_macro_input,
@@ -32,6 +33,10 @@ pub struct ImportedTokensBrace {
     _braces: Brace,
     #[inside(_braces)]
     contents: ImportedTokensBraceContents,
+}
+
+pub fn private_path(member: &TokenStream2) -> Path {
+    parse_quote!(::macro_magic::__private::#member)
 }
 
 pub fn flatten_ident(ident: &Ident) -> Ident {
@@ -100,6 +105,28 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     })
 }
 
+pub fn import_tokens_internal(
+    tokens_ident_tokens: &TokenStream2,
+    source_path_tokens: &TokenStream2,
+) -> Result<TokenStream2> {
+    let tokens_var_ident = parse2::<Ident>(tokens_ident_tokens.clone())?;
+    let source_path = parse2::<Path>(source_path_tokens.clone())?;
+    let Some(source_ident_seg) = source_path.segments.last() else { unreachable!("must have at least one segment") };
+    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
+    let source_path = if source_path.segments.len() > 1 {
+        let Some(crate_seg) = source_path.segments.first() else {
+            unreachable!("path has at least two segments, so there is a first segment");
+        };
+        quote!(#crate_seg::#source_ident_seg)
+    } else {
+        quote!(#source_ident_seg)
+    };
+    let inner_macro_path = private_path(&quote!(__import_tokens_inner));
+    Ok(quote! {
+        #source_path!(#tokens_var_ident, #inner_macro_path)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,5 +191,36 @@ mod tests {
             ),
         )
         .is_err());
+    }
+
+    #[test]
+    fn import_tokens_internal_simple_path() {
+        assert!(
+            import_tokens_internal(&quote!(tokens), &quote!(my_crate::SomethingCool))
+                .unwrap()
+                .to_string()
+                .contains("__export_tokens_tt_something_cool")
+        );
+    }
+
+    #[test]
+    fn import_tokens_internal_flatten_long_paths() {
+        assert!(import_tokens_internal(
+            &quote!(tokens),
+            &quote!(my_crate::some_mod::complex::SomethingElse)
+        )
+        .unwrap()
+        .to_string()
+        .contains("__export_tokens_tt_something_else"));
+    }
+
+    #[test]
+    fn import_tokens_internal_invalid_token_ident() {
+        assert!(import_tokens_internal(&quote!(3 * 2), &quote!(my_crate::something)).is_err());
+    }
+
+    #[test]
+    fn import_tokens_internal_invalid_path() {
+        assert!(import_tokens_internal(&quote!(my_tokens), &quote!(2 - 2)).is_err());
     }
 }

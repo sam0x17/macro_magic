@@ -7,7 +7,6 @@ use syn::parse2;
 use syn::parse_quote;
 use syn::{
     parse::Nothing,
-    parse_macro_input,
     token::{Brace, Comma},
     Ident, Item, Path, Result, Token,
 };
@@ -105,16 +104,12 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     })
 }
 
-pub fn import_tokens_internal(
-    tokens_ident_tokens: &TokenStream2,
-    source_path_tokens: &TokenStream2,
-) -> Result<TokenStream2> {
-    let tokens_var_ident = parse2::<Ident>(tokens_ident_tokens.clone())?;
-    let source_path = parse2::<Path>(source_path_tokens.clone())?;
-    let Some(source_ident_seg) = source_path.segments.last() else { unreachable!("must have at least one segment") };
+pub fn import_tokens_internal(tokens: TokenStream2) -> Result<TokenStream2> {
+    let args = parse2::<ImportTokensArgs>(tokens)?;
+    let Some(source_ident_seg) = args.source_path.segments.last() else { unreachable!("must have at least one segment") };
     let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
-    let source_path = if source_path.segments.len() > 1 {
-        let Some(crate_seg) = source_path.segments.first() else {
+    let source_path = if args.source_path.segments.len() > 1 {
+        let Some(crate_seg) = args.source_path.segments.first() else {
             unreachable!("path has at least two segments, so there is a first segment");
         };
         quote!(#crate_seg::#source_ident_seg)
@@ -122,8 +117,19 @@ pub fn import_tokens_internal(
         quote!(#source_ident_seg)
     };
     let inner_macro_path = private_path(&quote!(__import_tokens_inner));
+    let tokens_var_ident = args.tokens_var_ident;
     Ok(quote! {
         #source_path!(#tokens_var_ident, #inner_macro_path)
+    })
+}
+
+pub fn import_tokens_inner_internal(tokens: TokenStream2) -> Result<TokenStream2> {
+    let parsed = parse2::<ImportedTokensBrace>(tokens)?;
+    let tokens_string = parsed.contents.item.to_token_stream().to_string();
+    let ident = parsed.contents.tokens_var_ident;
+    let token_stream_2 = private_path(&quote!(TokenStream2));
+    Ok(quote! {
+        let #ident = #tokens_string.parse::<#token_stream_2>().expect("failed to parse quoted tokens");
     })
 }
 
@@ -196,7 +202,7 @@ mod tests {
     #[test]
     fn import_tokens_internal_simple_path() {
         assert!(
-            import_tokens_internal(&quote!(tokens), &quote!(my_crate::SomethingCool))
+            import_tokens_internal(quote!(let tokens = my_crate::SomethingCool))
                 .unwrap()
                 .to_string()
                 .contains("__export_tokens_tt_something_cool")
@@ -206,8 +212,7 @@ mod tests {
     #[test]
     fn import_tokens_internal_flatten_long_paths() {
         assert!(import_tokens_internal(
-            &quote!(tokens),
-            &quote!(my_crate::some_mod::complex::SomethingElse)
+            quote!(let tokens = my_crate::some_mod::complex::SomethingElse)
         )
         .unwrap()
         .to_string()
@@ -216,11 +221,69 @@ mod tests {
 
     #[test]
     fn import_tokens_internal_invalid_token_ident() {
-        assert!(import_tokens_internal(&quote!(3 * 2), &quote!(my_crate::something)).is_err());
+        assert!(import_tokens_internal(quote!(let 3 * 2 = my_crate::something)).is_err());
     }
 
     #[test]
     fn import_tokens_internal_invalid_path() {
-        assert!(import_tokens_internal(&quote!(my_tokens), &quote!(2 - 2)).is_err());
+        assert!(import_tokens_internal(quote!(let my_tokens = 2 - 2)).is_err());
+    }
+
+    #[test]
+    fn import_tokens_inner_internal_basic() {
+        assert!(import_tokens_inner_internal(quote! {
+            {
+                my_ident,
+                fn my_function() -> u32 {
+                    33
+                }
+            }
+        })
+        .unwrap()
+        .to_string()
+        .contains("my_ident"));
+    }
+
+    #[test]
+    fn import_tokens_inner_internal_impl() {
+        assert!(import_tokens_inner_internal(quote! {
+            {
+                another_ident,
+                impl Something for MyThing {
+                    fn something() -> CoolStuff {
+                        CoolStuff {}
+                    }
+                }
+            }
+        })
+        .unwrap()
+        .to_string()
+        .contains("something ()"));
+    }
+
+    #[test]
+    fn import_tokens_inner_internal_missing_comma() {
+        assert!(import_tokens_inner_internal(quote! {
+            {
+                another_ident
+                impl Something for MyThing {
+                    fn something() -> CoolStuff {
+                        CoolStuff {}
+                    }
+                }
+            }
+        })
+        .is_err());
+    }
+
+    #[test]
+    fn import_tokens_inner_internal_non_item() {
+        assert!(import_tokens_inner_internal(quote! {
+            {
+                another_ident,
+                2 + 2
+            }
+        })
+        .is_err());
     }
 }

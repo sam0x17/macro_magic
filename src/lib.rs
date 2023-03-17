@@ -36,9 +36,13 @@ pub mod core {
     pub use macro_magic_core::*;
 }
 
-pub use macro_magic_macros::*;
+pub use macro_magic_macros::{export_tokens, import_tokens};
 
+/// Contains re-exports required at compile-time by the macro_magic macros and support
+/// functions. This includes a re-export of [`import_tokens_inner`] and some [`syn`]-related
+/// types include [`TokenStream2`].
 #[doc(hidden)]
 pub mod __private {
+    pub use macro_magic_macros::import_tokens_inner;
     pub use syn::__private::TokenStream2;
 }

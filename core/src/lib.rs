@@ -143,8 +143,8 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 ///     "other_crate :: __export_tokens_tt_exported_item ! (tokens , \
 ///     :: macro_magic :: __private :: __import_tokens_inner)");
 /// ```
-pub fn import_tokens_internal(tokens: TokenStream2) -> Result<TokenStream2> {
-    let args = parse2::<ImportTokensArgs>(tokens)?;
+pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let args = parse2::<ImportTokensArgs>(tokens.into())?;
     let Some(source_ident_seg) = args.source_path.segments.last() else { unreachable!("must have at least one segment") };
     let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
     let source_path = if args.source_path.segments.len() > 1 {

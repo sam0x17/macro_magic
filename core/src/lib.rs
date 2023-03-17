@@ -1,3 +1,7 @@
+//! This crate contains most of the internal implementation of the macros in the
+//! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
+//! call their respective `_internal` variants in this crate.
+
 use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use proc_macro2::Span;
@@ -11,6 +15,7 @@ use syn::{
     Ident, Item, Path, Result, Token,
 };
 
+/// Used to parse the args for the [`import_tokens_internal`] function.
 #[derive(Parse)]
 pub struct ImportTokensArgs {
     _let: Token![let],
@@ -19,6 +24,7 @@ pub struct ImportTokensArgs {
     source_path: Path,
 }
 
+/// Contains the contents of the [`ImportedTokensBrace`] struct.
 #[derive(Parse)]
 pub struct ImportedTokensBraceContents {
     tokens_var_ident: Ident,
@@ -26,6 +32,7 @@ pub struct ImportedTokensBraceContents {
     item: Item,
 }
 
+/// Used to parse the args for the [`import_tokens_inner_internal`] function.
 #[derive(Parse)]
 pub struct ImportedTokensBrace {
     #[brace]
@@ -34,10 +41,14 @@ pub struct ImportedTokensBrace {
     contents: ImportedTokensBraceContents,
 }
 
+/// Appends `member` to the end of the `::macro_magic::__private` path and returns the
+/// resulting [`Path`]
 pub fn private_path(member: &TokenStream2) -> Path {
     parse_quote!(::macro_magic::__private::#member)
 }
 
+/// "Flattens" an ident by converting it to snake case. This is used by
+/// [`export_tokens_macro_ident`].
 pub fn flatten_ident(ident: &Ident) -> Ident {
     Ident::new(
         ident.to_string().to_case(Case::Snake).as_str(),
@@ -45,12 +56,21 @@ pub fn flatten_ident(ident: &Ident) -> Ident {
     )
 }
 
+/// Produces the full path for the auto-generated callback-based tt macro that allows us to
+/// forward tokens across crate boundaries
 pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
     let ident = flatten_ident(&ident);
     let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
+/// The internal code behind the `#[export_tokens]` attribute macro. The `attr` variable
+/// contains the tokens for the optional naming [`Ident`] (necessary on [`Item`]s that don't
+/// have an inherent [`Ident`]) is the optional `attr` and the `tokens` variable is the tokens
+/// for the [`Item`] the attribute macro can be attached to. The `attr` variable can be blank
+/// tokens for supported items, which includes every valid [`syn::Item`] except for
+/// [`syn::ItemForeignMod`], [`syn::ItemUse`], [`syn::ItemImpl`], and [`Item::Verbatim`], which
+/// all require `attr` to be specified.
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     attr: T,
     tokens: E,
@@ -104,6 +124,25 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     })
 }
 
+/// The internal implementation for the `import_tokens` macro. You can call this in your own
+/// proc macros to make use of the `import_tokens` functionality directly. The arguments should
+/// be a [`TokenStream2`] that can parse into an [`ImportTokensArgs`] successfully. That is a
+/// valid `let` variable declaration set to equal a path where an `#[export_tokens]` with the
+/// specified ident can be found.
+///
+/// ### Example:
+/// ```
+/// use macro_magic_core::*;
+/// use quote::quote;
+///
+/// let some_ident = quote!(tokens);
+/// let some_path = quote!(other_crate::exported_item);
+/// let tokens = import_tokens_internal(quote!(let #some_ident = other_crate::exported_item)).unwrap();
+/// assert_eq!(
+///     tokens.to_string(),
+///     "other_crate :: __export_tokens_tt_exported_item ! (tokens , \
+///     :: macro_magic :: __private :: __import_tokens_inner)");
+/// ```
 pub fn import_tokens_internal(tokens: TokenStream2) -> Result<TokenStream2> {
     let args = parse2::<ImportTokensArgs>(tokens)?;
     let Some(source_ident_seg) = args.source_path.segments.last() else { unreachable!("must have at least one segment") };
@@ -123,6 +162,8 @@ pub fn import_tokens_internal(tokens: TokenStream2) -> Result<TokenStream2> {
     })
 }
 
+/// The internal implementation for the `__import_tokens_inner` macro. You shouldn't need to
+/// call this in any circumstances but it is provided just in case.
 pub fn import_tokens_inner_internal(tokens: TokenStream2) -> Result<TokenStream2> {
     let parsed = parse2::<ImportedTokensBrace>(tokens)?;
     let tokens_string = parsed.contents.item.to_token_stream().to_string();

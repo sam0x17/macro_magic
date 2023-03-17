@@ -106,7 +106,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         }
         None => parse2::<Ident>(attr)?,
     };
-    let ident = flatten_ident(&ident);
+    let ident = export_tokens_macro_ident(&ident);
     Ok(quote! {
         #[macro_export]
         macro_rules! #ident {
@@ -135,14 +135,20 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 /// use macro_magic_core::*;
 /// use quote::quote;
 ///
-/// let some_ident = quote!(tokens);
+/// let some_ident = quote!(my_tokens);
 /// let some_path = quote!(other_crate::exported_item);
-/// let tokens = import_tokens_internal(quote!(let #some_ident = other_crate::exported_item)).unwrap();
+/// let tokens = import_tokens_internal(quote!(let #some_ident = other_crate::ExportedItem)).unwrap();
 /// assert_eq!(
 ///     tokens.to_string(),
-///     "other_crate :: __export_tokens_tt_exported_item ! (tokens , \
-///     :: macro_magic :: __private :: __import_tokens_inner)");
+///     "other_crate :: __export_tokens_tt_exported_item ! (my_tokens , \
+///     :: macro_magic :: __private :: import_tokens_inner)");
 /// ```
+/// If these tokens were emitted as part of a proc macro, they would expand to a variable
+/// declaration like:
+/// ```ignore
+/// let my_tokens: TokenStream2;
+/// ```
+/// where `my_tokens` contains the tokens of `ExportedItem`.
 pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let args = parse2::<ImportTokensArgs>(tokens.into())?;
     let Some(source_ident_seg) = args.source_path.segments.last() else { unreachable!("must have at least one segment") };
@@ -155,17 +161,17 @@ pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenS
     } else {
         quote!(#source_ident_seg)
     };
-    let inner_macro_path = private_path(&quote!(__import_tokens_inner));
+    let inner_macro_path = private_path(&quote!(import_tokens_inner));
     let tokens_var_ident = args.tokens_var_ident;
     Ok(quote! {
         #source_path!(#tokens_var_ident, #inner_macro_path)
     })
 }
 
-/// The internal implementation for the `__import_tokens_inner` macro. You shouldn't need to
+/// The internal implementation for the `import_tokens_inner` macro. You shouldn't need to
 /// call this in any circumstances but it is provided just in case.
-pub fn import_tokens_inner_internal(tokens: TokenStream2) -> Result<TokenStream2> {
-    let parsed = parse2::<ImportedTokensBrace>(tokens)?;
+pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let parsed = parse2::<ImportedTokensBrace>(tokens.into())?;
     let tokens_string = parsed.contents.item.to_token_stream().to_string();
     let ident = parsed.contents.tokens_var_ident;
     let token_stream_2 = private_path(&quote!(TokenStream2));
@@ -219,7 +225,7 @@ mod tests {
         )
         .unwrap()
         .to_string()
-        .contains("my_struct {"));
+        .contains("__export_tokens_tt_my_struct"));
     }
 
     #[test]

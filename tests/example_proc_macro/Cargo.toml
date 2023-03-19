@@ -1,6 +1,6 @@
 [package]
 name = "mm_example_proc_macro"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 repository = "https://github.com/sam0x17/macro_magic"
 description = "part of macro_magic"
@@ -12,8 +12,8 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-macro_magic = { version = "0.1.6", path = "../../" }
-mm_example_crate = { version = "0.1.6", path = "../example_crate" }
+macro_magic = { version = "0.1.7", path = "../../" }
+mm_example_crate = { version = "0.1.7", path = "../example_crate" }
 
 [features]
 default = []

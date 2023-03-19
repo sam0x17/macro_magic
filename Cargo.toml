@@ -23,13 +23,13 @@ description = "Allows the exporting and importing of the tokens of items across 
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }
-macro_magic_macros = { version = "0.1.6", path = "./macros" }
-macro_magic_core = { version = "0.1.6", path = "./core" }
+macro_magic_macros = { version = "0.1.7", path = "./macros" }
+macro_magic_core = { version = "0.1.7", path = "./core" }
 
 [dev-dependencies]
-mm_example_crate = { version = "*", path = "./tests/example_crate" }
-mm_example_proc_macro = { version = "*", path = "./tests/example_proc_macro" }
-mm_example_crate2 = { version = "*", path = "./tests/example_crate2" }
+mm_example_crate = { path = "./tests/example_crate" }
+mm_example_proc_macro = { path = "./tests/example_proc_macro" }
+mm_example_crate2 = { path = "./tests/example_crate2" }
 
 [features]
 default = []

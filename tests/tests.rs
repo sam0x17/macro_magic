@@ -1,4 +1,5 @@
 use macro_magic::*;
+use test_macros::include_impl;
 
 #[export_tokens]
 struct SomeStruct {
@@ -25,6 +26,9 @@ mod some_module {
         n.into() - 1
     }
 }
+
+#[include_impl(SomeStruct)]
+mod some_mod {}
 
 #[test]
 fn import_tokens_same_mod_no_ident() {

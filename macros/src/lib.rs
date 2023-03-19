@@ -10,6 +10,14 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
+    match forward_tokens_internal(tokens) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     match import_tokens_internal(tokens) {
         Ok(tokens) => tokens.into(),

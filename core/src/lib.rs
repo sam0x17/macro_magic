@@ -7,29 +7,81 @@ use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
-use syn::parse2;
-use syn::parse_quote;
 use syn::{
     parse::Nothing,
+    parse2, parse_quote,
     token::{Brace, Comma},
     Ident, Item, Path, Result, Token,
 };
+
+#[macro_export]
+macro_rules! call_proc_macro {
+    ($proc_macro:path, $tokens:tt) => {
+        $proc_macro! { $tokens }
+    };
+}
+
+#[macro_export]
+macro_rules! execute_callback {
+    ($callback:path, $input:tt) => {
+        $callback! {
+            {
+                $input
+            }
+        }
+    };
+}
+
+// pub struct MiscTokens {
+//     pub tokens: TokenStream2,
+// }
+
+// impl syn::parse::Parse for MiscTokens {
+//     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+//         Ok(MiscTokens {
+//             tokens: input.to_string().to_token_stream(),
+//         })
+//     }
+// }
+
+#[derive(Parse)]
+pub struct ForwardTokensArgs {
+    pub source: Path,
+    _comma1: Comma,
+    pub target: Path,
+    // _comma2: Comma,
+    // pub args: MiscTokens,
+}
+
+pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let mut args = parse2::<ForwardTokensArgs>(tokens.into())?;
+    let target_path = args.target;
+    let Some(seg) = args.source.segments.last_mut() else { unreachable!("must have at least one segment") };
+    let source_ident = &mut seg.ident;
+    *source_ident = export_tokens_macro_ident(source_ident);
+    let source_path = args.source;
+    Ok(quote! {
+        {
+            #source_path!(#target_path)
+        }
+    })
+}
 
 /// Used to parse the args for the [`import_tokens_internal`] function.
 #[derive(Parse)]
 pub struct ImportTokensArgs {
     _let: Token![let],
-    tokens_var_ident: Ident,
+    pub tokens_var_ident: Ident,
     _eq: Token![=],
-    source_path: Path,
+    pub source_path: Path,
 }
 
 /// Contains the contents of the [`ImportedTokensBrace`] struct.
 #[derive(Parse)]
 pub struct ImportedTokensBraceContents {
-    tokens_var_ident: Ident,
+    pub tokens_var_ident: Ident,
     _comma: Comma,
-    item: Item,
+    pub item: Item,
 }
 
 /// Used to parse the args for the [`import_tokens_inner_internal`] function.
@@ -38,7 +90,7 @@ pub struct ImportedTokensBrace {
     #[brace]
     _braces: Brace,
     #[inside(_braces)]
-    contents: ImportedTokensBraceContents,
+    pub contents: ImportedTokensBraceContents,
 }
 
 /// Appends `member` to the end of the `::macro_magic::__private` path and returns the

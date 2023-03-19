@@ -28,10 +28,7 @@ pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn include_impl_inner(tokens: TokenStream) -> TokenStream {
     println!("GOT TOKENS: {}", tokens.to_string());
-    quote!(
-        fn something_something() {}
-    )
-    .into()
+    quote!().into()
 }
 
 #[proc_macro]

@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemMod, Path};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, Item, ItemMod, Path};
 
 /// An example proc macro built on top of `import_tokens_internal`.
 ///
@@ -34,15 +34,23 @@ pub fn include_impl_inner(tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn some_macro(tokens: TokenStream) -> TokenStream {
     let source_path = parse_macro_input!(tokens as Path);
-    let fin = quote! {
+    quote! {
         forward_tokens!(#source_path, test_macros::some_other_macro);
-    };
-    //println!("final: {}", fin.to_string());
-    fin.into()
+    }
+    .into()
 }
 
 #[proc_macro]
-pub fn some_other_macro(_tokens: TokenStream) -> TokenStream {
-    //println!("tokens: {}", tokens.to_string());
-    quote!().into()
+pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
+    println!("tokens: {}", tokens.to_string());
+    let item = parse_macro_input!(tokens as Item);
+    assert_eq!(
+        item.to_token_stream().to_string(),
+        "struct SomeStruct { field1 : u32, field2 : bool, }"
+    );
+    quote! {
+        #[allow(unused)]
+        #item
+    }
+    .into()
 }

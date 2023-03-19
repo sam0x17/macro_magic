@@ -166,8 +166,8 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 /// let tokens = import_tokens_internal(quote!(let #some_ident = other_crate::ExportedItem)).unwrap();
 /// assert_eq!(
 ///     tokens.to_string(),
-///     "other_crate :: __export_tokens_tt_exported_item ! (my_tokens , \
-///     :: macro_magic :: __private :: import_tokens_inner)");
+///     "other_crate :: __export_tokens_tt_exported_item ! { my_tokens , \
+///     :: macro_magic :: __private :: import_tokens_inner }");
 /// ```
 /// If these tokens were emitted as part of a proc macro, they would expand to a variable
 /// declaration like:
@@ -190,7 +190,7 @@ pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenS
     let inner_macro_path = private_path(&quote!(import_tokens_inner));
     let tokens_var_ident = args.tokens_var_ident;
     Ok(quote! {
-        #source_path!(#tokens_var_ident, #inner_macro_path)
+        #source_path! { #tokens_var_ident, #inner_macro_path }
     })
 }
 
@@ -221,7 +221,7 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
     let inner_macro_path = private_path(&quote!(forward_tokens_inner));
     let target_path = args.target;
     Ok(quote! {
-        #source_path!(#target_path, #inner_macro_path)
+        #source_path! { #target_path, #inner_macro_path }
     })
 }
 

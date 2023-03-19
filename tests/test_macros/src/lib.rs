@@ -20,7 +20,7 @@ pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let external_path = parse_macro_input!(attr as Path);
     let _item_mod = parse_macro_input!(tokens as ItemMod);
     quote! {
-        ::macro_magic::forward_tokens!(#external_path, include_impl_inner);
+        ::macro_magic::forward_tokens! { #external_path, include_impl_inner }
     }
     .into()
 }

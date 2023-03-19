@@ -6,6 +6,7 @@ use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
+use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
 use syn::{
@@ -250,12 +251,31 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             "can only be attached to a function with #[proc_macro_attribute]",
         ));
     };
+
     // parsing complete, we have a valid attribute macro function (all other errors will be
     // handled by the presence of the #[proc_macro_atribute] attribute)
 
+    // outer macro
+    let orig_sig = proc_fn.sig;
+    let orig_stmts = proc_fn.block.stmts;
+    let orig_attrs = proc_fn.attrs;
+
+    // inner macro
+    let inner_macro_ident = format_ident!("__import_tokens_{}_inner", orig_sig.ident);
+    let mut inner_sig = orig_sig.clone();
+    inner_sig.ident = inner_macro_ident.clone();
+
+    // final quoted tokens
     Ok(quote! {
-        #[proc_macro_attribute]
-        pub fn
+        #(#orig_attrs)
+        *
+        pub #orig_sig {
+            println!("outer macro input: {}::TokenStream", #first_arg_ident.to_string());
+            use ::dynamic_proc_macro::__private::*;
+            let stuff = __outer_quote(#first_arg_ident.into(), quote::quote!(#inner_macro_ident));
+            println!("outer macro output: {}", stuff.to_string());
+            stuff.into()
+        }
     })
 }
 

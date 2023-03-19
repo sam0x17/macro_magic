@@ -21,29 +21,35 @@ use syn::{parse_macro_input, ItemMod, Path, Stmt};
 #[proc_macro_attribute]
 pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let external_path = parse_macro_input!(attr as Path);
-    let import_line = match import_tokens_internal(quote!(let imported_tokens = #external_path)) {
-        Ok(line) => line,
-        Err(err) => return err.to_compile_error().into(),
-    };
     let _item_mod = parse_macro_input!(tokens as ItemMod);
     quote! {
-        ::macro_magic::core::execute_callback! {
-            ::test_macros::include_impl_inner,
-            {
-                #import_line
-                panic!("hey");
-            }
-        }
+        ::macro_magic::forward_tokens!(#external_path, include_impl_inner);
     }
     .into()
 }
 
 #[proc_macro]
-pub fn include_impl_inner(_tokens: TokenStream) -> TokenStream {
-    // let mut st = tokens.to_string();
-    // st = st.replace("{", "").replace("}", "");
-    // let tokens = st.parse().unwrap();
-    //tokens
+pub fn include_impl_inner(tokens: TokenStream) -> TokenStream {
+    println!("GOT TOKENS: {}", tokens.to_string());
+    quote!(
+        struct MyThing {}
+    )
+    .into()
+}
+
+#[proc_macro]
+pub fn some_macro(tokens: TokenStream) -> TokenStream {
+    let source_path = parse_macro_input!(tokens as Path);
+    let fin = quote! {
+        forward_tokens!(#source_path, test_macros::some_other_macro);
+    };
+    println!("final: {}", fin.to_string());
+    fin.into()
+}
+
+#[proc_macro]
+pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
+    println!("tokens: {}", tokens.to_string());
     quote!().into()
 }
 

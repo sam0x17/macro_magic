@@ -1,5 +1,5 @@
 use macro_magic::*;
-use test_macros::include_impl;
+use test_macros::*;
 
 #[export_tokens]
 struct SomeStruct {
@@ -32,6 +32,7 @@ mod some_mod {}
 
 #[test]
 fn import_tokens_same_mod_no_ident() {
+    some_macro!(SomeStruct);
     import_tokens!(let tokens = SomeStruct);
     assert!(tokens.to_string().contains("field1"));
 }

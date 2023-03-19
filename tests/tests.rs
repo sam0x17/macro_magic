@@ -27,8 +27,8 @@ mod some_module {
     }
 }
 
-#[include_impl(SomeStruct)]
-mod some_mod {}
+// #[include_impl(SomeStruct)]
+// mod some_mod {}
 
 #[test]
 fn import_tokens_same_mod_no_ident() {

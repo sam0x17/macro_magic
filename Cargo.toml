@@ -2,6 +2,7 @@
 members = [
     "core",
     "macros",
+    "tests/test_macros",
 ]
 
 [package]
@@ -22,3 +23,6 @@ description = "Allows the exporting and importing of the tokens of items across 
 syn = { version = "1.0", features = ["full"] }
 macro_magic_macros = { version = "0.1.6", path = "./macros" }
 macro_magic_core = { version = "0.1.6", path = "./core" }
+
+[dev-dependencies]
+test_macros = { version = "*", path = "tests/test_macros" }

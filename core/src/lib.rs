@@ -32,55 +32,23 @@ macro_rules! execute_callback {
     };
 }
 
-// pub struct MiscTokens {
-//     pub tokens: TokenStream2,
-// }
+pub struct MiscTokens {
+    pub tokens: TokenStream2,
+}
 
-// impl syn::parse::Parse for MiscTokens {
-//     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-//         Ok(MiscTokens {
-//             tokens: input.to_string().to_token_stream(),
-//         })
-//     }
-// }
+impl syn::parse::Parse for MiscTokens {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(MiscTokens {
+            tokens: input.to_string().to_token_stream(),
+        })
+    }
+}
 
 #[derive(Parse)]
 pub struct ForwardTokensArgs {
     pub source: Path,
-    _comma1: Comma,
+    _comma: Comma,
     pub target: Path,
-    // _comma2: Comma,
-    // pub args: MiscTokens,
-}
-
-pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
-    let args = parse2::<ForwardTokensArgs>(tokens.into())?;
-    let Some(source_ident_seg) = args.source.segments.last() else { unreachable!("must have at least one segment") };
-    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
-    let source_path = if args.source.segments.len() > 1 {
-        let Some(crate_seg) = args.source.segments.first() else {
-            unreachable!("path has at least two segments, so there is a first segment");
-        };
-        quote!(#crate_seg::#source_ident_seg)
-    } else {
-        quote!(#source_ident_seg)
-    };
-    let inner_macro_path = private_path(&quote!(forward_tokens_inner));
-    let target_path = args.target;
-    Ok(quote! {
-        #source_path!(#target_path, #inner_macro_path)
-    })
-}
-
-pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
-    let parsed = parse2::<ForwardedTokensBrace>(tokens.into())?;
-    let target_path = parsed.contents.target_path;
-    let imported_tokens = parsed.contents.item;
-    Ok(quote! {
-        #target_path! {
-            #imported_tokens
-        }
-    })
 }
 
 #[derive(Parse)]
@@ -260,6 +228,36 @@ pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<
     let token_stream_2 = private_path(&quote!(TokenStream2));
     Ok(quote! {
         let #ident = #tokens_string.parse::<#token_stream_2>().expect("failed to parse quoted tokens");
+    })
+}
+
+pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let args = parse2::<ForwardTokensArgs>(tokens.into())?;
+    let Some(source_ident_seg) = args.source.segments.last() else { unreachable!("must have at least one segment") };
+    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
+    let source_path = if args.source.segments.len() > 1 {
+        let Some(crate_seg) = args.source.segments.first() else {
+            unreachable!("path has at least two segments, so there is a first segment");
+        };
+        quote!(#crate_seg::#source_ident_seg)
+    } else {
+        quote!(#source_ident_seg)
+    };
+    let inner_macro_path = private_path(&quote!(forward_tokens_inner));
+    let target_path = args.target;
+    Ok(quote! {
+        #source_path!(#target_path, #inner_macro_path)
+    })
+}
+
+pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let parsed = parse2::<ForwardedTokensBrace>(tokens.into())?;
+    let target_path = parsed.contents.target_path;
+    let imported_tokens = parsed.contents.item;
+    Ok(quote! {
+        #target_path! {
+            #imported_tokens
+        }
     })
 }
 

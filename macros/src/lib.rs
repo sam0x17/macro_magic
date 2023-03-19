@@ -40,3 +40,11 @@ pub fn forward_tokens_inner(tokens: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro_attribute]
+pub fn import_tokens_attr(tokens: TokenStream) -> TokenStream {
+    match import_tokens_attr_internal(tokens) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}

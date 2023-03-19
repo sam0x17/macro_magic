@@ -7,7 +7,11 @@ use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
-use syn::{parse::Nothing, parse2, parse_quote, token::Comma, Ident, Item, Path, Result, Token};
+use syn::spanned::Spanned;
+use syn::{
+    parse::Nothing, parse2, parse_quote, token::Comma, Error, Ident, Item, ItemFn, Path, Result,
+    Token, Visibility,
+};
 
 #[macro_export]
 macro_rules! call_proc_macro {
@@ -233,6 +237,35 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
         #target_path! {
             #imported_tokens
         }
+    })
+}
+
+pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
+    attr: T1,
+    tokens: T2,
+) -> Result<TokenStream2> {
+    parse2::<Nothing>(attr.into())?;
+    let proc_fn = parse2::<ItemFn>(tokens.into())?;
+    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+    let Some(macro_type) = proc_fn
+        .attrs
+        .iter()
+        .find_map(|attr| {
+            if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
+                Some(ProcMacroType::Normal)
+            } else if syn::parse2::<keywords::proc_macro_derive>(attr.path.to_token_stream()).is_ok() {
+                Some(ProcMacroType::Derive)
+            } else if syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok() {
+                Some(ProcMacroType::Attribute)
+            } else {
+                None
+            }
+    }) else {
+        panic!("can only be attached to a function with #[proc_macro], #[proc_macro_derive], or #[proc_macro_attribute]")
+    };
+    Ok(quote! {
+        #[proc_macro_attribute]
+        pub fn
     })
 }
 

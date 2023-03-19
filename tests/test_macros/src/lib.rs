@@ -1,9 +1,6 @@
-use derive_syn_parse::Parse;
-use macro_magic::core::*;
-use macro_magic::*;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemMod, Path, Stmt};
+use syn::{parse_macro_input, ItemMod, Path};
 
 /// An example proc macro built on top of `import_tokens_internal`.
 ///
@@ -32,7 +29,7 @@ pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 pub fn include_impl_inner(tokens: TokenStream) -> TokenStream {
     println!("GOT TOKENS: {}", tokens.to_string());
     quote!(
-        struct MyThing {}
+        fn something_something() {}
     )
     .into()
 }
@@ -43,18 +40,12 @@ pub fn some_macro(tokens: TokenStream) -> TokenStream {
     let fin = quote! {
         forward_tokens!(#source_path, test_macros::some_other_macro);
     };
-    println!("final: {}", fin.to_string());
+    //println!("final: {}", fin.to_string());
     fin.into()
 }
 
 #[proc_macro]
-pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
-    println!("tokens: {}", tokens.to_string());
+pub fn some_other_macro(_tokens: TokenStream) -> TokenStream {
+    //println!("tokens: {}", tokens.to_string());
     quote!().into()
-}
-
-#[derive(Parse)]
-struct IncludeImplInnerArgs {
-    import_line: Stmt,
-    item_mod: ItemMod,
 }

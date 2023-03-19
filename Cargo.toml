@@ -40,21 +40,21 @@ verbose = [
 indirect = [
     "macro_magic_core/indirect",
     "macro_magic_macros/indirect",
-    # "mm_example_proc_macro/indirect",
-    # "mm_example_crate/indirect",
-    # "mm_example_crate2/indirect",
+    "mm_example_proc_macro/indirect",
+    "mm_example_crate/indirect",
+    "mm_example_crate2/indirect",
 ]
 indirect-write = [
     "macro_magic_macros/indirect-write",
     "macro_magic_core/indirect-write",
-    # "mm_example_proc_macro/indirect-write",
-    # "mm_example_crate/indirect-write",
-    # "mm_example_crate2/indirect-write",
+    "mm_example_proc_macro/indirect-write",
+    "mm_example_crate/indirect-write",
+    "mm_example_crate2/indirect-write",
 ]
 indirect-read = [
     "macro_magic_macros/indirect-read",
     "macro_magic_core/indirect-read",
-    # "mm_example_proc_macro/indirect-read",
-    # "mm_example_crate/indirect-read",
-    # "mm_example_crate2/indirect-read",
+    "mm_example_proc_macro/indirect-read",
+    "mm_example_crate/indirect-read",
+    "mm_example_crate2/indirect-read",
 ]

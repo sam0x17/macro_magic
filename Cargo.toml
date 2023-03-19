@@ -9,7 +9,7 @@ members = [
 
 [package]
 name = "macro_magic"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 authors = ["sam0x17"]
 license = "MIT"

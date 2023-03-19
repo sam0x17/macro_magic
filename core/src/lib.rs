@@ -7,12 +7,7 @@ use derive_syn_parse::Parse;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
-use syn::{
-    parse::Nothing,
-    parse2, parse_quote,
-    token::{Brace, Comma},
-    Ident, Item, Path, Result, Token,
-};
+use syn::{parse::Nothing, parse2, parse_quote, token::Comma, Ident, Item, Path, Result, Token};
 
 #[macro_export]
 macro_rules! call_proc_macro {
@@ -52,18 +47,10 @@ pub struct ForwardTokensArgs {
 }
 
 #[derive(Parse)]
-pub struct ForwardedTokensBraceContents {
+pub struct ForwardedTokens {
     pub target_path: Path,
     _comma: Comma,
     pub item: Item,
-}
-
-#[derive(Parse)]
-pub struct ForwardedTokensBrace {
-    #[brace]
-    _braces: Brace,
-    #[inside(_braces)]
-    pub contents: ForwardedTokensBraceContents,
 }
 
 /// Used to parse the args for the [`import_tokens_internal`] function.
@@ -75,21 +62,11 @@ pub struct ImportTokensArgs {
     pub source_path: Path,
 }
 
-/// Contains the contents of the [`ImportedTokensBrace`] struct.
 #[derive(Parse)]
-pub struct ImportedTokensBraceContents {
+pub struct ImportedTokens {
     pub tokens_var_ident: Ident,
     _comma: Comma,
     pub item: Item,
-}
-
-/// Used to parse the args for the [`import_tokens_inner_internal`] function.
-#[derive(Parse)]
-pub struct ImportedTokensBrace {
-    #[brace]
-    _braces: Brace,
-    #[inside(_braces)]
-    pub contents: ImportedTokensBraceContents,
 }
 
 /// Appends `member` to the end of the `::macro_magic::__private` path and returns the
@@ -163,10 +140,8 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         macro_rules! #ident {
             ($tokens_var:path, $callback:path) => {
                 $callback! {
-                    {
-                        $tokens_var,
-                        #item
-                    }
+                    $tokens_var,
+                    #item
                 }
             };
         }
@@ -222,9 +197,9 @@ pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenS
 /// The internal implementation for the `import_tokens_inner` macro. You shouldn't need to
 /// call this in any circumstances but it is provided just in case.
 pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
-    let parsed = parse2::<ImportedTokensBrace>(tokens.into())?;
-    let tokens_string = parsed.contents.item.to_token_stream().to_string();
-    let ident = parsed.contents.tokens_var_ident;
+    let parsed = parse2::<ImportedTokens>(tokens.into())?;
+    let tokens_string = parsed.item.to_token_stream().to_string();
+    let ident = parsed.tokens_var_ident;
     let token_stream_2 = private_path(&quote!(TokenStream2));
     Ok(quote! {
         let #ident = #tokens_string.parse::<#token_stream_2>().expect("failed to parse quoted tokens");
@@ -251,9 +226,9 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
 }
 
 pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
-    let parsed = parse2::<ForwardedTokensBrace>(tokens.into())?;
-    let target_path = parsed.contents.target_path;
-    let imported_tokens = parsed.contents.item;
+    let parsed = parse2::<ForwardedTokens>(tokens.into())?;
+    let target_path = parsed.target_path;
+    let imported_tokens = parsed.item;
     Ok(quote! {
         #target_path! {
             #imported_tokens
@@ -360,11 +335,9 @@ mod tests {
     #[test]
     fn import_tokens_inner_internal_basic() {
         assert!(import_tokens_inner_internal(quote! {
-            {
-                my_ident,
-                fn my_function() -> u32 {
-                    33
-                }
+            my_ident,
+            fn my_function() -> u32 {
+                33
             }
         })
         .unwrap()
@@ -375,12 +348,10 @@ mod tests {
     #[test]
     fn import_tokens_inner_internal_impl() {
         assert!(import_tokens_inner_internal(quote! {
-            {
-                another_ident,
-                impl Something for MyThing {
-                    fn something() -> CoolStuff {
-                        CoolStuff {}
-                    }
+            another_ident,
+            impl Something for MyThing {
+                fn something() -> CoolStuff {
+                    CoolStuff {}
                 }
             }
         })

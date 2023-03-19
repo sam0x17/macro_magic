@@ -27,8 +27,8 @@ mod some_module {
     }
 }
 
-// #[include_impl(SomeStruct)]
-// mod some_mod {}
+#[include_impl(SomeStruct)]
+mod some_mod {}
 
 #[test_attr]
 pub mod hunter {

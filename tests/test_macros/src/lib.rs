@@ -54,3 +54,14 @@ pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
     }
     .into()
 }
+
+#[proc_macro_attribute]
+pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(tokens as Item);
+    quote! {
+        macro_magic::expand_item_safe! {
+            fn item() {}
+        }
+    }
+    .into()
+}

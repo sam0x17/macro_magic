@@ -30,6 +30,13 @@ mod some_module {
 // #[include_impl(SomeStruct)]
 // mod some_mod {}
 
+#[test_attr]
+pub mod hunter {
+    pub fn stuff() {
+        println!("things");
+    }
+}
+
 #[test]
 fn import_tokens_same_mod_no_ident() {
     some_macro!(SomeStruct);

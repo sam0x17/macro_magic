@@ -38,11 +38,18 @@ pub mod core {
 
 pub use macro_magic_macros::{export_tokens, forward_tokens, import_tokens};
 
+#[macro_export]
+macro_rules! expand_item_safe {
+    ($($tokens:tt)*) => {
+        $($tokens)*
+    };
+}
+
 /// Contains re-exports required at compile-time by the macro_magic macros and support
 /// functions. This includes a re-export of [`import_tokens_inner`] and some [`syn`]-related
 /// types include [`TokenStream2`].
 #[doc(hidden)]
 pub mod __private {
-    pub use macro_magic_macros::{forward_tokens_inner, import_tokens_inner};
+    pub use macro_magic_macros::*;
     pub use syn::__private::TokenStream2;
 }

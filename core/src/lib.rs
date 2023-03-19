@@ -54,17 +54,48 @@ pub struct ForwardTokensArgs {
 }
 
 pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
-    let mut args = parse2::<ForwardTokensArgs>(tokens.into())?;
+    let args = parse2::<ForwardTokensArgs>(tokens.into())?;
+    let Some(source_ident_seg) = args.source.segments.last() else { unreachable!("must have at least one segment") };
+    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
+    let source_path = if args.source.segments.len() > 1 {
+        let Some(crate_seg) = args.source.segments.first() else {
+            unreachable!("path has at least two segments, so there is a first segment");
+        };
+        quote!(#crate_seg::#source_ident_seg)
+    } else {
+        quote!(#source_ident_seg)
+    };
+    let inner_macro_path = private_path(&quote!(forward_tokens_inner));
     let target_path = args.target;
-    let Some(seg) = args.source.segments.last_mut() else { unreachable!("must have at least one segment") };
-    let source_ident = &mut seg.ident;
-    *source_ident = export_tokens_macro_ident(source_ident);
-    let source_path = args.source;
     Ok(quote! {
-        {
-            #source_path!(#target_path)
+        #source_path!(#target_path, #inner_macro_path)
+    })
+}
+
+pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let parsed = parse2::<ForwardedTokensBrace>(tokens.into())?;
+    let target_path = parsed.contents.target_path;
+    let imported_tokens = parsed.contents.item;
+    Ok(quote! {
+        #target_path! {
+            #imported_tokens
         }
     })
+}
+
+#[derive(Parse)]
+pub struct ForwardedTokensBraceContents {
+    pub target_path: Path,
+    _comma: Comma,
+    pub item: Item,
+}
+
+#[derive(Parse)]
+pub struct ForwardedTokensBrace {
+    #[brace]
+    _braces: Brace,
+    #[inside(_braces)]
+    pub contents: ForwardedTokensBraceContents,
 }
 
 /// Used to parse the args for the [`import_tokens_internal`] function.
@@ -162,7 +193,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     Ok(quote! {
         #[macro_export]
         macro_rules! #ident {
-            ($tokens_var:ident, $callback:path) => {
+            ($tokens_var:path, $callback:path) => {
                 $callback! {
                     {
                         $tokens_var,

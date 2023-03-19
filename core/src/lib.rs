@@ -13,22 +13,12 @@ use syn::{
     Token, Visibility,
 };
 
-#[macro_export]
-macro_rules! call_proc_macro {
-    ($proc_macro:path, $tokens:tt) => {
-        $proc_macro! { $tokens }
-    };
-}
+mod keywords {
+    use syn::custom_keyword;
 
-#[macro_export]
-macro_rules! execute_callback {
-    ($callback:path, $input:tt) => {
-        $callback! {
-            {
-                $input
-            }
-        }
-    };
+    custom_keyword!(proc_macro);
+    custom_keyword!(proc_macro_attribute);
+    custom_keyword!(proc_macro_derive);
 }
 
 pub struct MiscTokens {
@@ -247,22 +237,22 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     parse2::<Nothing>(attr.into())?;
     let proc_fn = parse2::<ItemFn>(tokens.into())?;
     let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
-    let Some(macro_type) = proc_fn
+    if proc_fn
         .attrs
         .iter()
-        .find_map(|attr| {
-            if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
-                Some(ProcMacroType::Normal)
-            } else if syn::parse2::<keywords::proc_macro_derive>(attr.path.to_token_stream()).is_ok() {
-                Some(ProcMacroType::Derive)
-            } else if syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok() {
-                Some(ProcMacroType::Attribute)
-            } else {
-                None
-            }
-    }) else {
-        panic!("can only be attached to a function with #[proc_macro], #[proc_macro_derive], or #[proc_macro_attribute]")
+        .find(|attr| {
+            syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok()
+        })
+        .is_none()
+    {
+        return Err(Error::new(
+            proc_fn.sig.ident.span(),
+            "can only be attached to a function with #[proc_macro_attribute]",
+        ));
     };
+    // parsing complete, we have a valid attribute macro function (all other errors will be
+    // handled by the presence of the #[proc_macro_atribute] attribute)
+
     Ok(quote! {
         #[proc_macro_attribute]
         pub fn

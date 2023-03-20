@@ -71,14 +71,16 @@ pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn test_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(attr as Item);
-    println!(
-        "imported_item: {}",
-        imported_item.to_token_stream().to_string()
+    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item_str = imported_item.to_token_stream().to_string();
+    let attached_item_str = attached_item.to_token_stream().to_string();
+    assert_eq!(imported_item_str, "struct AnotherStruct { field1 : u32, }");
+    assert_eq!(
+        attached_item_str,
+        "pub mod hunter { pub fn stuff() { println! (\"things\") ; } }"
     );
-    // let attached_item = parse_macro_input!(tokens as Item);
-    // println!(
-    //     "attached_item: {}",
-    //     attached_item.to_token_stream().to_string()
-    // );
-    quote!().into()
+    quote! {
+        #attached_item
+    }
+    .into()
 }

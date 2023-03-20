@@ -52,7 +52,7 @@ fn cute_little_fn() {
 
 #[test]
 fn attr_direct_import() {
-    assert_eq!(an_external_function(String::from("hey")), "hey_bizzz!");
+    assert_eq!(an_external_function(4), 37);
 }
 
 #[test]

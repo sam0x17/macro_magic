@@ -50,6 +50,14 @@ fn cute_little_fn() {
     println!("hey!");
 }
 
+#[export_tokens]
+struct LionStruct {}
+
+#[test]
+fn test_import_tokens_proc() {
+    example_tokens_proc!(LionStruct);
+}
+
 #[test]
 fn attr_direct_import() {
     assert_eq!(an_external_function(4), 37);

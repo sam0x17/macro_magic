@@ -22,6 +22,7 @@ mod keywords {
     use syn::custom_keyword;
 
     custom_keyword!(proc_macro_attribute);
+    custom_keyword!(proc_macro);
 }
 
 /// Used to parse args that were passed to [`forward_tokens_internal`].
@@ -303,7 +304,7 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
 pub fn import_tokens_attr_outer_quote(
     path_tokens: TokenStream2,
     inner_macro_ident_tokens: TokenStream2,
-    external_item_str: String,
+    external_item_str: Option<String>,
 ) -> TokenStream2 {
     let path = match syn::parse2::<syn::Path>(path_tokens.into()) {
         Ok(path) => path,
@@ -313,11 +314,20 @@ pub fn import_tokens_attr_outer_quote(
         Ok(ident) => ident,
         Err(e) => return e.to_compile_error().into(),
     };
-    quote::quote! {
-        ::macro_magic::forward_tokens! {
-            #path,
-            #inner_macro_ident,
-            #external_item_str
+    if let Some(external_item_str) = external_item_str {
+        quote::quote! {
+            ::macro_magic::forward_tokens! {
+                #path,
+                #inner_macro_ident,
+                #external_item_str
+            }
+        }
+    } else {
+        quote::quote! {
+            ::macro_magic::forward_tokens! {
+                #path,
+                #inner_macro_ident
+            }
         }
     }
 }
@@ -389,7 +399,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             ::macro_magic::core::import_tokens_attr_outer_quote(
                 #first_arg_ident.into(),
                 quote::quote!(#inner_macro_ident),
-                attached_item_str,
+                Some(attached_item_str),
             ).into()
         }
 
@@ -400,6 +410,69 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let (#first_arg_ident, #second_arg_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #first_arg_ident: proc_macro::TokenStream = #first_arg_ident.to_token_stream().into();
             let #second_arg_ident: proc_macro::TokenStream = #second_arg_ident.value().parse().unwrap();
+            #(#orig_stmts)
+            *
+        }
+    })
+}
+
+pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
+    attr: T1,
+    tokens: T2,
+) -> Result<TokenStream2> {
+    parse2::<Nothing>(attr.into())?;
+    let proc_fn = parse2::<ItemFn>(tokens.into())?;
+    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+    if proc_fn
+        .attrs
+        .iter()
+        .find(|attr| syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok())
+        .is_none()
+    {
+        return Err(Error::new(
+            proc_fn.sig.ident.span(),
+            "can only be attached to a function with #[proc_macro]",
+        ));
+    };
+
+    // parsing complete, we have a valid proc macro function (all other errors will be handled
+    // by the presence of the #[proc_macro] attribute)
+
+    // outer macro
+    let orig_sig = proc_fn.sig;
+    let orig_stmts = proc_fn.block.stmts;
+    let orig_attrs = proc_fn.attrs;
+
+    // inner macro
+    let inner_macro_ident = format_ident!("__import_tokens_proc_{}_inner", orig_sig.ident);
+    let mut inner_sig = orig_sig.clone();
+    inner_sig.ident = inner_macro_ident.clone();
+    inner_sig.inputs = inner_sig.inputs.iter().rev().cloned().collect();
+
+    // tokens arg
+    let Some(FnArg::Typed(second_arg)) = orig_sig.inputs.last() else {
+        unreachable!("missing second arg");
+    };
+    let Pat::Ident(second_arg_ident) = *second_arg.pat.clone() else {
+        unreachable!("invalid second arg");
+    };
+
+    Ok(quote! {
+        #(#orig_attrs)
+        *
+        pub #orig_sig {
+            use ::macro_magic::__private::*;
+            use ::macro_magic::__private::quote::ToTokens;
+            ::macro_magic::core::import_tokens_attr_outer_quote(
+                #second_arg_ident.into(),
+                quote::quote!(#inner_macro_ident),
+                None,
+            ).into()
+        }
+
+        #[doc(hidden)]
+        #[proc_macro]
+        pub #inner_sig {
             #(#orig_stmts)
             *
         }

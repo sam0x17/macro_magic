@@ -35,11 +35,24 @@ struct AnotherStruct {
     field1: u32,
 }
 
-#[test_tokens_attr(AnotherStruct)]
+#[test_tokens_attr1(AnotherStruct)]
 pub mod hunter {
     pub fn stuff() {
         println!("things");
     }
+}
+
+#[test_tokens_attr2(external_crate::AnExternalTraitImpl)]
+struct LocalItemStruct {}
+
+#[test_tokens_attr_direct_import(external_crate::an_external_function)]
+fn cute_little_fn() {
+    println!("hey!");
+}
+
+#[test]
+fn attr_direct_import() {
+    assert_eq!(an_external_function(String::from("hey")), "hey_bizzz!");
 }
 
 #[test]

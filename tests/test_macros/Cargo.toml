@@ -2,14 +2,13 @@
 name = "test_macros"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [lib]
 proc-macro = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-macro_magic = { version = "*", path = "../../" }
+macro_magic = { path = "../../" }
 syn = { version = "1.0", features = ["full"] }
 quote = "1.0"
 derive-syn-parse = "0.1.5"

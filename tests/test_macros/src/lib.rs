@@ -69,7 +69,7 @@ pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
 #[import_tokens_attr]
 #[proc_macro_attribute]
-pub fn test_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+pub fn test_tokens_attr1(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(attr as Item);
     let attached_item = parse_macro_input!(tokens as Item);
     let imported_item_str = imported_item.to_token_stream().to_string();
@@ -80,6 +80,38 @@ pub fn test_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         "pub mod hunter { pub fn stuff() { println! (\"things\") ; } }"
     );
     quote! {
+        #attached_item
+    }
+    .into()
+}
+
+#[import_tokens_attr]
+#[proc_macro_attribute]
+pub fn test_tokens_attr2(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item_str = imported_item.to_token_stream().to_string();
+    let attached_item_str = attached_item.to_token_stream().to_string();
+    assert_eq!(
+        imported_item_str,
+        "impl FooBarTrait for FooBarStruct\n{\n    fn foo(n : u32) -> u32 { n + 1 } \
+        fn bar(n : i32) -> i32 { n - 1 } fn\n    fizz(v : bool) -> bool { ! v } fn \
+        buzz(st : String) -> String\n    { format! (\"{}buzzz\", st) }\n}"
+    );
+    assert_eq!(attached_item_str, "struct LocalItemStruct {}");
+    quote! {
+        #attached_item
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+#[import_tokens_attr]
+pub fn test_tokens_attr_direct_import(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    quote! {
+        #imported_item
         #attached_item
     }
     .into()

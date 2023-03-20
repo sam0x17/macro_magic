@@ -246,7 +246,10 @@ pub fn import_tokens_attr_outer_quote<T: Into<TokenStream2>>(
         Err(e) => return e.to_compile_error().into(),
     };
     quote::quote! {
-        ::macro_magic::forward_tokens!(#inner_macro_ident, #path)
+        ::macro_magic::forward_tokens! {
+            #path,
+            #inner_macro_ident
+        }
     }
 }
 
@@ -283,13 +286,14 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let inner_macro_ident = format_ident!("__import_tokens_attr_{}_inner", orig_sig.ident);
     let mut inner_sig = orig_sig.clone();
     inner_sig.ident = inner_macro_ident.clone();
+    inner_sig.inputs.pop().unwrap();
 
     // source path
     let Some(FnArg::Typed(first_arg)) = orig_sig.inputs.first() else {
         unreachable!("missing first arg");
     };
     let Pat::Ident(first_arg_ident) = *first_arg.pat.clone() else {
-        panic!("invalid first arg");
+        unreachable!("invalid first arg");
     };
 
     // attached item tokens
@@ -297,24 +301,22 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         unreachable!("missing second arg");
     };
     let Pat::Ident(second_arg_ident) = *second_arg.pat.clone() else {
-        panic!("invalid second arg");
+        unreachable!("invalid second arg");
     };
-    println!("first_arg_ident: {}", first_arg_ident.ident.to_string());
-    println!("inner_macro_ident: {}", inner_macro_ident.to_string());
 
     // final quoted tokens
-    Ok(quote! {
+    let output = quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
             use ::macro_magic::__private::*;
             let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
-            println!("outer macro input: {}::TokenStream", #first_arg_ident.to_string());
+            println!("\nouter macro input:\n{}\n", #first_arg_ident.to_string());
             let stuff = ::macro_magic::core::import_tokens_attr_outer_quote(
                 #first_arg_ident.into(),
                 quote::quote!(#inner_macro_ident)
             );
-            println!("outer macro output: {}", stuff.to_string());
+            println!("outer macro output:\n{}\n\n", stuff.to_string());
             stuff.into()
         }
 
@@ -325,7 +327,9 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             #(#orig_stmts)
             *
         }
-    })
+    };
+    // println!("\noutput:\n{}\n\n", output.to_string());
+    Ok(output)
 }
 
 #[cfg(test)]

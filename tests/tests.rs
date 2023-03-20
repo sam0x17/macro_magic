@@ -35,7 +35,7 @@ struct AnotherStruct {
     field1: u32,
 }
 
-//#[test_tokens_attr(AnotherStruct)]
+#[test_tokens_attr(AnotherStruct)]
 pub mod hunter {
     pub fn stuff() {
         println!("things");

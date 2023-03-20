@@ -10,6 +10,7 @@ use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
 use syn::FnArg;
+use syn::LitStr;
 use syn::Pat;
 use syn::{
     parse::Nothing, parse2, parse_quote, token::Comma, Error, Ident, Item, ItemFn, Path, Result,
@@ -39,15 +40,28 @@ impl syn::parse::Parse for MiscTokens {
 #[derive(Parse)]
 pub struct ForwardTokensArgs {
     pub source: Path,
-    _comma: Comma,
+    _comma1: Comma,
     pub target: Path,
+    _comma2: Option<Comma>,
+    #[parse_if(_comma2.is_some())]
+    pub extra: Option<LitStr>,
 }
 
 #[derive(Parse)]
 pub struct ForwardedTokens {
     pub target_path: Path,
-    _comma: Comma,
+    _comma1: Comma,
     pub item: Item,
+    _comma2: Option<Comma>,
+    #[parse_if(_comma2.is_some())]
+    pub extra: Option<LitStr>,
+}
+
+#[derive(Parse)]
+pub struct AttrItemWithExtra {
+    pub imported_item: Item,
+    _comma: Comma,
+    pub extra: LitStr,
 }
 
 /// Used to parse the args for the [`import_tokens_internal`] function.
@@ -135,6 +149,13 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     Ok(quote! {
         #[macro_export]
         macro_rules! #ident {
+            ($tokens_var:path, $callback:path, $extra:expr) => {
+                $callback! {
+                    $tokens_var,
+                    #item,
+                    $extra
+                }
+            };
             ($tokens_var:path, $callback:path) => {
                 $callback! {
                     $tokens_var,
@@ -217,25 +238,43 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
     };
     let inner_macro_path = private_path(&quote!(forward_tokens_inner));
     let target_path = args.target;
-    Ok(quote! {
-        #source_path! { #target_path, #inner_macro_path }
-    })
+    if let Some(extra) = args.extra {
+        Ok(quote! {
+            #source_path! {
+                #target_path,
+                #inner_macro_path,
+                #extra
+            }
+        })
+    } else {
+        Ok(quote! {
+            #source_path! { #target_path, #inner_macro_path }
+        })
+    }
 }
 
 pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let parsed = parse2::<ForwardedTokens>(tokens.into())?;
     let target_path = parsed.target_path;
     let imported_tokens = parsed.item;
+    let combined_tokens = match parsed.extra {
+        Some(extra) => quote! {
+            #imported_tokens,
+            #extra
+        },
+        None => quote!(#imported_tokens),
+    };
     Ok(quote! {
         #target_path! {
-            #imported_tokens
+            #combined_tokens
         }
     })
 }
 
-pub fn import_tokens_attr_outer_quote<T: Into<TokenStream2>>(
-    path_tokens: T,
-    inner_macro_ident_tokens: T,
+pub fn import_tokens_attr_outer_quote(
+    path_tokens: TokenStream2,
+    inner_macro_ident_tokens: TokenStream2,
+    external_item_str: String,
 ) -> TokenStream2 {
     let path = match syn::parse2::<syn::Path>(path_tokens.into()) {
         Ok(path) => path,
@@ -248,7 +287,8 @@ pub fn import_tokens_attr_outer_quote<T: Into<TokenStream2>>(
     quote::quote! {
         ::macro_magic::forward_tokens! {
             #path,
-            #inner_macro_ident
+            #inner_macro_ident,
+            #external_item_str
         }
     }
 }
@@ -305,31 +345,32 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     };
 
     // final quoted tokens
-    let output = quote! {
+    Ok(quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
             use ::macro_magic::__private::*;
+            use ::macro_magic::__private::quote::ToTokens;
             let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
-            println!("\nouter macro input:\n{}\n", #first_arg_ident.to_string());
-            let stuff = ::macro_magic::core::import_tokens_attr_outer_quote(
+            let attached_item_str = attached_item.to_token_stream().to_string();
+            ::macro_magic::core::import_tokens_attr_outer_quote(
                 #first_arg_ident.into(),
-                quote::quote!(#inner_macro_ident)
-            );
-            println!("outer macro output:\n{}\n\n", stuff.to_string());
-            stuff.into()
+                quote::quote!(#inner_macro_ident),
+                attached_item_str,
+            ).into()
         }
 
         #[doc(hidden)]
         #[proc_macro]
         pub #inner_sig {
-            println!("inner_macro input: {}", #first_arg_ident.to_string());
+            let __combined_args = ::macro_magic::__private::syn::parse_macro_input!(#first_arg_ident as ::macro_magic::core::AttrItemWithExtra);
+            let (#first_arg_ident, #second_arg_ident) = (__combined_args.imported_item, __combined_args.extra);
+            let #first_arg_ident: proc_macro::TokenStream = #first_arg_ident.to_token_stream().into();
+            let #second_arg_ident: proc_macro::TokenStream = #second_arg_ident.value().parse().unwrap();
             #(#orig_stmts)
             *
         }
-    };
-    // println!("\noutput:\n{}\n\n", output.to_string());
-    Ok(output)
+    })
 }
 
 #[cfg(test)]

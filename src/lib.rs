@@ -36,7 +36,7 @@ pub mod core {
     pub use macro_magic_core::*;
 }
 
-pub use macro_magic_macros::{export_tokens, forward_tokens, import_tokens};
+pub use macro_magic_macros::{export_tokens, forward_tokens, import_tokens, import_tokens_attr};
 
 #[macro_export]
 macro_rules! expand_item_safe {
@@ -51,5 +51,7 @@ macro_rules! expand_item_safe {
 #[doc(hidden)]
 pub mod __private {
     pub use macro_magic_macros::*;
+    pub use quote;
+    pub use syn;
     pub use syn::__private::TokenStream2;
 }

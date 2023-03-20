@@ -36,7 +36,9 @@ pub mod core {
     pub use macro_magic_core::*;
 }
 
-pub use macro_magic_macros::{export_tokens, forward_tokens, import_tokens, import_tokens_attr};
+pub use macro_magic_macros::{
+    export_tokens, forward_tokens, import_tokens, import_tokens_attr, import_tokens_proc,
+};
 
 #[macro_export]
 macro_rules! expand_item_safe {

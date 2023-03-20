@@ -27,8 +27,8 @@ pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn include_impl_inner(tokens: TokenStream) -> TokenStream {
-    println!("GOT TOKENS: {}", tokens.to_string());
+pub fn include_impl_inner(_tokens: TokenStream) -> TokenStream {
+    // println!("GOT TOKENS: {}", tokens.to_string());
     quote!().into()
 }
 
@@ -43,7 +43,7 @@ pub fn some_macro(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
-    println!("tokens: {}", tokens.to_string());
+    // println!("tokens: {}", tokens.to_string());
     let item = parse_macro_input!(tokens as Item);
     assert_eq!(
         item.to_token_stream().to_string(),
@@ -67,18 +67,18 @@ pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-//#[import_tokens_attr]
+#[import_tokens_attr]
 #[proc_macro_attribute]
 pub fn test_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let imported_item = parse_macro_input!(attr as Path);
-    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item = parse_macro_input!(attr as Item);
     println!(
         "imported_item: {}",
         imported_item.to_token_stream().to_string()
     );
-    println!(
-        "attached_item: {}",
-        attached_item.to_token_stream().to_string()
-    );
+    // let attached_item = parse_macro_input!(tokens as Item);
+    // println!(
+    //     "attached_item: {}",
+    //     attached_item.to_token_stream().to_string()
+    // );
     quote!().into()
 }

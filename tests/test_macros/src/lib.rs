@@ -95,8 +95,7 @@ pub fn test_tokens_attr2(attr: TokenStream, tokens: TokenStream) -> TokenStream 
     assert_eq!(
         imported_item_str,
         "impl FooBarTrait for FooBarStruct\n{\n    fn foo(n : u32) -> u32 { n + 1 } \
-        fn bar(n : i32) -> i32 { n - 1 } fn\n    fizz(v : bool) -> bool { ! v } fn \
-        buzz(st : String) -> String\n    { format! (\"{}buzzz\", st) }\n}"
+        fn bar(n : i32) -> i32 { n - 1 } fn\n    fizz(v : bool) -> bool { ! v }\n}"
     );
     assert_eq!(attached_item_str, "struct LocalItemStruct {}");
     quote! {

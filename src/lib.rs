@@ -47,7 +47,7 @@ macro_rules! expand_item_safe {
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support
 /// functions. This includes a re-export of [`import_tokens_inner`] and some [`syn`]-related
-/// types include [`TokenStream2`].
+/// types include [`TokenStream2`](`syn::__private::TokenStream2`).
 #[doc(hidden)]
 pub mod __private {
     pub use macro_magic_macros::*;

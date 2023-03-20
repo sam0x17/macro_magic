@@ -3,6 +3,7 @@ members = [
     "core",
     "macros",
     "tests/test_macros",
+    "tests/external_crate"
 ]
 
 [package]
@@ -26,4 +27,5 @@ macro_magic_macros = { version = "0.1.6", path = "./macros" }
 macro_magic_core = { version = "0.1.6", path = "./core" }
 
 [dev-dependencies]
-test_macros = { version = "*", path = "tests/test_macros" }
+test_macros = { path = "tests/test_macros" }
+external_crate = { path = "tests/external_crate" }

@@ -30,7 +30,12 @@ mod some_module {
 #[include_impl(SomeStruct)]
 mod some_mod {}
 
-#[test_attr]
+#[export_tokens]
+struct AnotherStruct {
+    field1: u32,
+}
+
+//#[test_tokens_attr(AnotherStruct)]
 pub mod hunter {
     pub fn stuff() {
         println!("things");

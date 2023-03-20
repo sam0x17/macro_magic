@@ -1,3 +1,4 @@
+use macro_magic::*;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Item, ItemMod, Path};
@@ -64,4 +65,20 @@ pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+//#[import_tokens_attr]
+#[proc_macro_attribute]
+pub fn test_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Path);
+    let attached_item = parse_macro_input!(tokens as Item);
+    println!(
+        "imported_item: {}",
+        imported_item.to_token_stream().to_string()
+    );
+    println!(
+        "attached_item: {}",
+        attached_item.to_token_stream().to_string()
+    );
+    quote!().into()
 }

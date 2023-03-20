@@ -9,6 +9,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
+use syn::FnArg;
+use syn::Pat;
 use syn::{
     parse::Nothing, parse2, parse_quote, token::Comma, Error, Ident, Item, ItemFn, Path, Result,
     Token, Visibility,
@@ -231,6 +233,23 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     })
 }
 
+pub fn import_tokens_attr_outer_quote<T: Into<TokenStream2>>(
+    path_tokens: T,
+    inner_macro_ident_tokens: T,
+) -> TokenStream2 {
+    let path = match syn::parse2::<syn::Path>(path_tokens.into()) {
+        Ok(path) => path,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let inner_macro_ident = match syn::parse2::<syn::Ident>(inner_macro_ident_tokens.into()) {
+        Ok(ident) => ident,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    quote::quote! {
+        ::macro_magic::forward_tokens!(#inner_macro_ident, #path)
+    }
+}
+
 pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,
@@ -261,20 +280,50 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let orig_attrs = proc_fn.attrs;
 
     // inner macro
-    let inner_macro_ident = format_ident!("__import_tokens_{}_inner", orig_sig.ident);
+    let inner_macro_ident = format_ident!("__import_tokens_attr_{}_inner", orig_sig.ident);
     let mut inner_sig = orig_sig.clone();
     inner_sig.ident = inner_macro_ident.clone();
+
+    // source path
+    let Some(FnArg::Typed(first_arg)) = orig_sig.inputs.first() else {
+        unreachable!("missing first arg");
+    };
+    let Pat::Ident(first_arg_ident) = *first_arg.pat.clone() else {
+        panic!("invalid first arg");
+    };
+
+    // attached item tokens
+    let Some(FnArg::Typed(second_arg)) = orig_sig.inputs.last() else {
+        unreachable!("missing second arg");
+    };
+    let Pat::Ident(second_arg_ident) = *second_arg.pat.clone() else {
+        panic!("invalid second arg");
+    };
+    println!("first_arg_ident: {}", first_arg_ident.ident.to_string());
+    println!("inner_macro_ident: {}", inner_macro_ident.to_string());
 
     // final quoted tokens
     Ok(quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
+            use ::macro_magic::__private::*;
+            let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
             println!("outer macro input: {}::TokenStream", #first_arg_ident.to_string());
-            use ::dynamic_proc_macro::__private::*;
-            let stuff = __outer_quote(#first_arg_ident.into(), quote::quote!(#inner_macro_ident));
+            let stuff = ::macro_magic::core::import_tokens_attr_outer_quote(
+                #first_arg_ident.into(),
+                quote::quote!(#inner_macro_ident)
+            );
             println!("outer macro output: {}", stuff.to_string());
             stuff.into()
+        }
+
+        #[doc(hidden)]
+        #[proc_macro]
+        pub #inner_sig {
+            println!("inner_macro input: {}", #first_arg_ident.to_string());
+            #(#orig_stmts)
+            *
         }
     })
 }

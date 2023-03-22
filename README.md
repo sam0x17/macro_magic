@@ -39,7 +39,9 @@ All of this behavior is accomplished under the hood using proc macros that creat
 you via simple attribute macros you can apply to your proc macros to imbue them with the power
 of importing the tokens for external items based on their path.
 
-For example, you could write an attribute macro to "inject" the fields of one struct into
+## Attribute Example
+
+You could write an attribute macro to "inject" the fields of one struct into
 another as follows:
 
 ```rust
@@ -109,6 +111,101 @@ struct LocalStruct {
     baz: i32,
 }
 ```
+
+Note that the `attr` variable on the `combine_structs` proc macro, thanks to the powers of
+`#[import_tokens_attr]`, will receive the actual tokens for the `ExternalStruct` item, rather
+than merely receiving the tokens for the path `ExternalStruct`.
+
+This gives you the ability to write attribute macros that receive tokens for two items, one
+specified by path via the first argument `attr`, as well as the tokens for the item the
+attribute is attached to via the 2nd argument `tokens`. The only requirement is that the item
+specified by `attr` has been marked with `#[export_tokens]`.
+
+## Proc Macro Example
+
+You could write a PHP/ruby/crystal-style verbatim import / `require` macro which blindly
+imports the tokens of the specified external module into the current context (with all the good
+and bad implications that would imply), like this:
+
+```rust
+#[import_tokens_proc]
+#[proc_macro]
+pub fn require(tokens: TokenStream) -> TokenStream {
+    let external_mod = parse_macro_input!(tokens as ItemMod);
+    let Some((_, stmts)) = external_mod.content else {
+        return Error::new(
+            external_mod.span(),
+            "cannot import tokens from a file-based module since custom file-level \
+            attributes are not yet supported by Rust"
+        ).to_compile_error().into()
+    };
+    quote! {
+        #(#stmts)
+        *
+    }
+    .into()
+}
+```
+
+You could then use the `require!` macro like this:
+
+```rust
+// in some external crate
+#[export_tokens]
+mod an_external_module {
+    fn my_cool_function() -> u32 {
+        567
+    }
+
+    fn my_other_function() -> u32 {
+        116
+    }
+}
+```
+
+```rust
+// in another crate where we will use the `require!` macro
+mod my_module {
+    use my_macros::require;
+
+    fn existing_stuff() {
+        println!("foo!");
+    }
+
+    require!(external_crate::an_external_module);
+}
+```
+
+which would result in this expansion of `require!` within `my_module`:
+
+```rust
+mod my_module {
+    use my_macros::require;
+
+    fn existing_stuff() {
+        println!("foo!");
+    }
+
+    fn my_cool_function() -> u32 {
+        567
+    }
+
+    fn my_other_function() -> u32 {
+        116
+    }
+}
+```
+
+Notice that this hypothetical `require!` macro is dangerous for two reasons:
+
+- Any types you may have brought into scope with `use` statements in the foreign module may or
+  may not be available in their new context without additional use statements.
+- If existing items in the module or context where you use the `require!` macro conflict with
+  something you are importing, you will get a compiler error (this is good, though).
+
+These are just _some_ of the capabilities of `macro_magic` 🪄
+
+## Remarks
 
 Among other things, the patterns introduced by `macro_magic` can be used to implement safe and
 efficient coordination and communication between macro invocations in the same file, and even

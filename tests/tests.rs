@@ -136,3 +136,9 @@ fn test_combine_structs_example() {
         baz: 87,
     };
 }
+
+#[test]
+fn test_require_example() {
+    require!(external_crate::an_external_module);
+    assert_eq!(my_cool_function(), 567);
+}

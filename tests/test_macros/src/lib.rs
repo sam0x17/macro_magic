@@ -170,3 +170,21 @@ pub fn combine_structs(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     }
     .into()
 }
+
+#[import_tokens_proc]
+#[proc_macro]
+pub fn require(tokens: TokenStream) -> TokenStream {
+    let external_mod = parse_macro_input!(tokens as ItemMod);
+    let Some((_, stmts)) = external_mod.content else {
+        return Error::new(
+            external_mod.span(),
+            "cannot import tokens from a file-based module since custom file-level \
+            attributes are not yet supported by Rust"
+        ).to_compile_error().into()
+    };
+    quote! {
+        #(#stmts)
+        *
+    }
+    .into()
+}

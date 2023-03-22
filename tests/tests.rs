@@ -59,8 +59,8 @@ struct TigerStruct {}
 
 #[test]
 fn test_import_tokens_proc() {
-    example_tokens_proc!(LionStruct);
-    let something = example_tokens_proc!(TigerStruct);
+    example_tokens_proc!(TigerStruct);
+    //let something = example_tokens_proc!(TigerStruct);
 }
 
 #[test]

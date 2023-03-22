@@ -95,6 +95,14 @@ pub struct ImportedTokens {
     pub item: Item,
 }
 
+pub fn pretty_print<T: Into<TokenStream2> + Clone>(tokens: &T) {
+    let tokens = (*tokens).clone();
+    println!(
+        "\n\n{}\n\n",
+        prettyplease::unparse(&syn::parse_file(tokens.into().to_string().as_str()).unwrap())
+    );
+}
+
 /// Appends `member` to the end of the `::macro_magic::__private` path and returns the
 /// resulting [`Path`]
 pub fn private_path(member: &TokenStream2) -> Path {
@@ -119,6 +127,66 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
     let ident = flatten_ident(&ident);
     let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
     Ident::new(ident_string.as_str(), Span::call_site())
+}
+
+pub fn export_tokens_internal_alt<T: Into<TokenStream2>, E: Into<TokenStream2>>(
+    attr: T,
+    tokens: E,
+) -> Result<TokenStream2> {
+    let attr = attr.into();
+    let item: Item = parse2(tokens.into())?;
+    let ident = match item.clone() {
+        Item::Const(item_const) => Some(item_const.ident),
+        Item::Enum(item_enum) => Some(item_enum.ident),
+        Item::ExternCrate(item_extern_crate) => Some(item_extern_crate.ident),
+        Item::Fn(item_fn) => Some(item_fn.sig.ident),
+        Item::Macro(item_macro) => item_macro.ident, // note this one might not have an Ident as well
+        Item::Macro2(item_macro2) => Some(item_macro2.ident),
+        Item::Mod(item_mod) => Some(item_mod.ident),
+        Item::Static(item_static) => Some(item_static.ident),
+        Item::Struct(item_struct) => Some(item_struct.ident),
+        Item::Trait(item_trait) => Some(item_trait.ident),
+        Item::TraitAlias(item_trait_alias) => Some(item_trait_alias.ident),
+        Item::Type(item_type) => Some(item_type.ident),
+        Item::Union(item_union) => Some(item_union.ident),
+        // Item::ForeignMod(item_foreign_mod) => None,
+        // Item::Use(item_use) => None,
+        // Item::Impl(item_impl) => None,
+        _ => None,
+    };
+    let ident = match ident {
+        Some(ident) => {
+            if let Ok(_) = parse2::<Nothing>(attr.clone()) {
+                ident
+            } else {
+                parse2::<Ident>(attr)?
+            }
+        }
+        None => parse2::<Ident>(attr)?,
+    };
+    let ident = export_tokens_macro_ident(&ident);
+    let output = quote! {
+        #[macro_export]
+        macro_rules! #ident {
+            ($tokens_var:path, $callback:path, $extra:expr) => {
+                $callback! {
+                    $tokens_var,
+                    #item,
+                    $extra
+                }
+            };
+            ($tokens_var:path, $callback:path) => {
+                $callback! {
+                    $tokens_var,
+                    #item
+                }
+            };
+        }
+        #[allow(unused)]
+        #item
+    };
+    pretty_print(&output);
+    Ok(output)
 }
 
 /// The internal code behind the `#[export_tokens]` attribute macro.

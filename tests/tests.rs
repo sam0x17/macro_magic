@@ -1,4 +1,5 @@
 use macro_magic::*;
+use macro_magic_macros::export_tokens_alt;
 use test_macros::*;
 
 #[export_tokens]
@@ -53,10 +54,13 @@ fn cute_little_fn() {
 #[export_tokens]
 struct LionStruct {}
 
+#[export_tokens_alt]
+struct TigerStruct {}
+
 #[test]
 fn test_import_tokens_proc() {
     example_tokens_proc!(LionStruct);
-    // let something = example_tokens_proc!(LionStruct);
+    let something = example_tokens_proc!(TigerStruct);
 }
 
 #[test]

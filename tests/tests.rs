@@ -78,6 +78,15 @@ fn test_import_tokens_proc_expr_position() {
 }
 
 #[test]
+fn test_export_tokens_inside_function() {
+    let something = example_tokens_proc!(external_crate::some_sub_function);
+    assert_eq!(
+        something.to_string(),
+        "fn some_sub_function() -> u32 { 33 }"
+    );
+}
+
+#[test]
 fn attr_direct_import() {
     assert_eq!(an_external_function(4), 37);
 }

@@ -128,11 +128,20 @@ fn a_random_fn() {
 }
 
 #[test]
-fn macro_calls_inside_fn_current_file() {
+fn println_inside_fn_current_file() {
     let tokens = example_tokens_proc!(a_random_fn);
     assert_eq!(
         tokens.to_string(),
         "fn a_random_fn() { println! (\"hey\") ; }"
+    );
+}
+
+#[test]
+fn macro_calls_inside_fn_external_crate() {
+    let tokens = example_tokens_proc!(external_crate::external_fn_with_local_macro_calls);
+    assert_eq!(
+        tokens.to_string(),
+        "fn external_fn_with_local_macro_calls() -> u32 { another_macro! () ; 1337 }"
     );
 }
 

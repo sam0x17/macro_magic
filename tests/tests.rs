@@ -1,6 +1,8 @@
 use macro_magic::*;
 use test_macros::*;
 
+mod external_file;
+
 #[export_tokens]
 struct SomeStruct {
     field1: u32,
@@ -133,6 +135,15 @@ fn println_inside_fn_current_file() {
     assert_eq!(
         tokens.to_string(),
         "fn a_random_fn() { println! (\"hey\") ; }"
+    );
+}
+
+#[test]
+fn println_inside_fn_external_file() {
+    let tokens = example_tokens_proc!(external_fn_with_println);
+    assert_eq!(
+        tokens.to_string(),
+        "fn external_fn_with_println() { println! (\"testing\") ; }"
     );
 }
 

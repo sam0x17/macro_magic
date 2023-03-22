@@ -47,3 +47,15 @@ fn _some_function() {
         33
     }
 }
+
+macro_rules! another_macro {
+    () => {
+        let a = 2;
+    };
+}
+
+#[export_tokens]
+fn external_fn_with_local_macro_calls() -> u32 {
+    another_macro!();
+    1337
+}

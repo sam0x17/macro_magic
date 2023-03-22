@@ -1,6 +1,10 @@
 #![no_std] // test that `#[export_tokens]` works with `no_std`
 
+use macro_magic::*;
+
 mod some_submodule {
+    use macro_magic::*;
+
     struct FooBarStruct {}
 
     trait FooBarTrait {
@@ -9,7 +13,7 @@ mod some_submodule {
         fn fizz(v: bool) -> bool;
     }
 
-    #[macro_magic::export_tokens(AnExternalTraitImpl)]
+    #[export_tokens(AnExternalTraitImpl)]
     impl FooBarTrait for FooBarStruct {
         fn foo(n: u32) -> u32 {
             n + 1
@@ -25,7 +29,14 @@ mod some_submodule {
     }
 }
 
-#[macro_magic::export_tokens]
+#[export_tokens]
 fn an_external_function(my_num: u32) -> u32 {
     my_num + 33
+}
+
+#[export_tokens]
+mod an_external_module {
+    fn my_cool_function() -> u32 {
+        567
+    }
 }

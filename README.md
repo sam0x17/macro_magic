@@ -10,7 +10,7 @@ which, when used in tandem, allow you to create regular and attribute proc macro
 can import and make use of the tokens of foreign items marked with `#[export_tokens]` in other
 modules, files, and even in other crates merely by referring to them by name/path.
 
-For example, you can build regular and attribute proc macros that look like this:
+You can use `macro_magic` to build regular and attribute proc macros that look like this:
 
 ```rust
 #[my_attribute(path::to::MyItem)]
@@ -110,7 +110,7 @@ struct LocalStruct {
 }
 ```
 
-Among other things, the patterns introduced by Macro Magic can be used to implement safe and
+Among other things, the patterns introduced by `macro_magic` can be used to implement safe and
 efficient coordination and communication between macro invocations in the same file, and even
 across different files and different crates. This crate officially supercedes my previous
 effort at achieving this, [macro_state](https://crates.io/crates/macro_state), which was

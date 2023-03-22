@@ -299,41 +299,6 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     })
 }
 
-/// Used by [`import_tokens_attr_internal`] to get around the limitations of [`quote::quote!`]
-/// that prevent us from escaping the `#` character when quoting a quote.
-///
-/// Tracking issue here: <https://github.com/dtolnay/quote/issues/249>
-pub fn import_tokens_attr_outer_quote(
-    path_tokens: TokenStream2,
-    inner_macro_ident_tokens: TokenStream2,
-    external_item_str: Option<String>,
-) -> TokenStream2 {
-    let path = match syn::parse2::<syn::Path>(path_tokens.into()) {
-        Ok(path) => path,
-        Err(e) => return e.to_compile_error().into(),
-    };
-    let inner_macro_ident = match syn::parse2::<syn::Ident>(inner_macro_ident_tokens.into()) {
-        Ok(ident) => ident,
-        Err(e) => return e.to_compile_error().into(),
-    };
-    if let Some(external_item_str) = external_item_str {
-        quote::quote! {
-            ::macro_magic::forward_tokens! {
-                #path,
-                #inner_macro_ident,
-                #external_item_str
-            }
-        }
-    } else {
-        quote::quote! {
-            ::macro_magic::forward_tokens! {
-                #path,
-                #inner_macro_ident
-            }
-        }
-    }
-}
-
 /// Internal implementation for the `#[import_tokens_attr]` attribute.
 ///
 /// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
@@ -389,6 +354,8 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         unreachable!("invalid second arg");
     };
 
+    let pound = Punct::new('#', Spacing::Alone);
+
     // final quoted tokens
     Ok(quote! {
         #(#orig_attrs)
@@ -398,11 +365,14 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             use ::macro_magic::__private::quote::ToTokens;
             let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
-            ::macro_magic::core::import_tokens_attr_outer_quote(
-                #first_arg_ident.into(),
-                quote::quote!(#inner_macro_ident),
-                Some(attached_item_str),
-            ).into()
+            let path = syn::parse_macro_input!(#first_arg_ident as syn::Path);
+            quote::quote! {
+                ::macro_magic::forward_tokens! {
+                    #pound path,
+                    #inner_macro_ident,
+                    #pound attached_item_str
+                }
+            }.into()
         }
 
         #[doc(hidden)]

@@ -168,14 +168,14 @@ pub fn export_tokens_internal_alt<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     let output = quote! {
         #[macro_export]
         macro_rules! #ident {
-            ($tokens_var:path, $callback:path, $extra:expr) => {
+            ($tokens_var:ident, $callback:path, $extra:expr) => {
                 $callback! {
                     $tokens_var,
                     #item,
                     $extra
                 }
             };
-            ($tokens_var:path, $callback:path) => {
+            ($tokens_var:ident, $callback:path) => {
                 $callback! {
                     $tokens_var,
                     #item

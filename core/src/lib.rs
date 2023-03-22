@@ -95,6 +95,10 @@ pub struct ImportedTokens {
     pub item: Item,
 }
 
+/// Convenience function that will pretty-print anything compatible with [`TokenStream2`]
+/// including [`TokenStream2`], `TokenStream`, and all [`syn`] items.
+///
+/// Uses the `prettyplease` crate.
 pub fn pretty_print<T: Into<TokenStream2> + Clone>(tokens: &T) {
     let tokens = (*tokens).clone();
     println!(

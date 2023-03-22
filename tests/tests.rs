@@ -58,9 +58,14 @@ struct LionStruct {}
 struct TigerStruct {}
 
 #[test]
-fn test_import_tokens_proc() {
-    example_tokens_proc!(TigerStruct);
-    //let something = example_tokens_proc!(TigerStruct);
+fn test_import_tokens_proc_statement_position() {
+    example_tokens_proc!(LionStruct);
+}
+
+#[test]
+fn test_import_tokens_proc_expr_position() {
+    let something = example_tokens_proc!(TigerStruct);
+    assert_eq!(something.to_string(), "struct TigerStruct {}");
 }
 
 #[test]

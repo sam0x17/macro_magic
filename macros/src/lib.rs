@@ -78,6 +78,34 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     }
 }
 
+/// "Forwards" the tokens of the specified exported item (specified by path as the first arg)
+/// to the specified proc or `macro_rules!` macro (specified by path as the second arg).
+///
+/// This is used internally as the basis for many of the other macros in this crate, but can
+/// also be useful in its own right in certain situations.
+///
+/// This macro can be used in item contexts, and is also safe in expr contexts as long as both
+/// arguments passed are idents rather than paths (can't contain `::`). This is an unfortunate
+/// side effect of how decl macros are implemented in Rust
+///
+/// There is also an optional third argument called "extra" which allows you to forward string
+/// literal data to the target macro. This is used by
+/// [`#[import_tokens_attr]`](`import_tokens_proc`) to pass the tokens for the attached item
+/// in addition to the tokens for the external item.
+///
+/// ## Example
+///
+/// ```ignore
+/// #[macro_export]
+/// macro_rules! receiver {
+///     ($tokens:item) => {
+///         stringify!($tokens)
+///     };
+/// }
+///
+/// let result = forward_tokens!(LionStruct, receiver);
+/// assert_eq!(result, "struct LionStruct {}");
+/// ```
 #[proc_macro]
 pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
     match forward_tokens_internal(tokens) {

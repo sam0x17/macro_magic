@@ -56,6 +56,7 @@ struct LionStruct {}
 #[test]
 fn test_import_tokens_proc() {
     example_tokens_proc!(LionStruct);
+    // let something = example_tokens_proc!(LionStruct);
 }
 
 #[test]

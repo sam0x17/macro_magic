@@ -4,6 +4,8 @@
 
 use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
+use proc_macro2::Punct;
+use proc_macro2::Spacing;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::format_ident;
@@ -457,17 +459,24 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         unreachable!("invalid second arg");
     };
 
+    let pound = Punct::new('#', Spacing::Alone);
+
     Ok(quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
             use ::macro_magic::__private::*;
             use ::macro_magic::__private::quote::ToTokens;
-            ::macro_magic::core::import_tokens_attr_outer_quote(
-                #second_arg_ident.into(),
-                quote::quote!(#inner_macro_ident),
-                None,
-            ).into()
+            let source_path = match syn::parse::<syn::Path>(#second_arg_ident) {
+                Ok(path) => path,
+                Err(e) => return e.to_compile_error().into(),
+            };
+            quote::quote! {
+                ::macro_magic::forward_tokens! {
+                    #pound source_path,
+                    #inner_macro_ident
+                }
+            }.into()
         }
 
         #[doc(hidden)]

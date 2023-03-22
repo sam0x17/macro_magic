@@ -56,9 +56,18 @@ struct LionStruct {}
 #[export_tokens]
 struct TigerStruct {}
 
+// test proc item position
+item_level_proc!(external_crate::AnExternalTraitImpl);
+
+#[test]
+fn test_import_tokens_proc_item_position() {
+    let _foo = SomeInjectedStruct {};
+}
+
 #[test]
 fn test_import_tokens_proc_statement_position() {
     example_tokens_proc!(LionStruct);
+    example_tokens_proc!(external_crate::AnExternalTraitImpl);
 }
 
 #[test]
@@ -73,12 +82,12 @@ fn attr_direct_import() {
     assert_eq!(an_external_function(4), 37);
 }
 
-// #[test]
-// fn import_tokens_same_mod_no_ident() {
-//     some_macro!(SomeStruct);
-//     import_tokens!(let tokens = SomeStruct);
-//     assert!(tokens.to_string().contains("field1"));
-// }
+#[test]
+fn import_tokens_same_mod_no_ident() {
+    some_macro!(SomeStruct);
+    import_tokens!(let tokens = SomeStruct);
+    assert!(tokens.to_string().contains("field1"));
+}
 
 #[test]
 fn import_tokens_same_mod_ident() {

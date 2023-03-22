@@ -180,23 +180,30 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         // HACK: import `forward_tokens_inner` to facilitate below hack
         #[macro_export]
         macro_rules! #ident {
-            ($tokens_var:ident, $callback:path, $extra:expr) => {
+            // arm used by attr
+            ($tokens_var:path, $callback:path, $extra:expr) => {
                 $callback! {
                     $tokens_var,
                     #item,
                     $extra
                 }
             };
-            // HACK: arm used to allow `forward_tokens` to be used in expr position when no
-            // attached item is provided
+            // HACK: arm used to allow `forward_tokens` to be used in expr position
             ($tokens_var:ident, __forward_tokens_inner) => {
                 ::macro_magic::__private::forward_tokens_inner! {
                     $tokens_var,
                     #item
                 }
             };
-            // regular arm used by `import_tokens` (does not work in expr position)
-            ($tokens_var:ident, $callback:path) => {
+            // HACK: extra arm for `import_tokens_same_mod_no_ident` (does not work in expr position)
+            ($tokens_var:path, __forward_tokens_inner) => {
+                ::macro_magic::__private::forward_tokens_inner! {
+                    $tokens_var,
+                    #item
+                }
+            };
+            // regular arm used by `import_tokens` and others (does not work in expr position)
+            ($tokens_var:path, $callback:path) => {
                 $callback! {
                     $tokens_var,
                     #item

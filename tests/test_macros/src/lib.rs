@@ -123,3 +123,13 @@ pub fn example_tokens_proc(tokens: TokenStream) -> TokenStream {
     let item_as_string = imported_item.to_token_stream().to_string();
     quote!(#item_as_string).into()
 }
+
+#[import_tokens_proc]
+#[proc_macro]
+pub fn item_level_proc(tokens: TokenStream) -> TokenStream {
+    let _imported_item = parse_macro_input!(tokens as Item);
+    quote!(
+        struct SomeInjectedStruct {}
+    )
+    .into()
+}

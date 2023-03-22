@@ -121,6 +121,5 @@ pub fn test_tokens_attr_direct_import(attr: TokenStream, tokens: TokenStream) ->
 pub fn example_tokens_proc(tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(tokens as Item);
     let item_as_string = imported_item.to_token_stream().to_string();
-    println!("imported: {}", item_as_string);
     quote!(#item_as_string).into()
 }

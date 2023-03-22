@@ -166,6 +166,8 @@ pub fn export_tokens_internal_alt<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     };
     let ident = export_tokens_macro_ident(&ident);
     let output = quote! {
+        // HACK: import `forward_tokens_inner` to facilitate below hack
+        use ::macro_magic::__private::forward_tokens_inner;
         #[macro_export]
         macro_rules! #ident {
             ($tokens_var:ident, $callback:path, $extra:expr) => {
@@ -175,7 +177,8 @@ pub fn export_tokens_internal_alt<T: Into<TokenStream2>, E: Into<TokenStream2>>(
                     $extra
                 }
             };
-            ($tokens_var:ident, $callback:path) => {
+            ($tokens_var:ident, $callback:ident) => {
+                // HACK: use ident to allow working in expr position
                 $callback! {
                     $tokens_var,
                     #item
@@ -331,7 +334,7 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
     } else {
         quote!(#source_ident_seg)
     };
-    let inner_macro_path = private_path(&quote!(forward_tokens_inner));
+    let inner_macro_path = quote!(forward_tokens_inner);
     let target_path = args.target;
     if let Some(extra) = args.extra {
         Ok(quote! {

@@ -40,3 +40,10 @@ mod an_external_module {
         567
     }
 }
+
+fn _some_function() {
+    #[export_tokens]
+    fn some_sub_function() -> u32 {
+        33
+    }
+}

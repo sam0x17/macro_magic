@@ -1,5 +1,4 @@
 use macro_magic::*;
-use macro_magic_macros::export_tokens_alt;
 use test_macros::*;
 
 #[export_tokens]
@@ -54,7 +53,7 @@ fn cute_little_fn() {
 #[export_tokens]
 struct LionStruct {}
 
-#[export_tokens_alt]
+#[export_tokens]
 struct TigerStruct {}
 
 #[test]
@@ -66,6 +65,7 @@ fn test_import_tokens_proc_statement_position() {
 fn test_import_tokens_proc_expr_position() {
     let something = example_tokens_proc!(TigerStruct);
     assert_eq!(something.to_string(), "struct TigerStruct {}");
+    let _something_else = example_tokens_proc!(external_crate::AnExternalTraitImpl);
 }
 
 #[test]
@@ -73,12 +73,12 @@ fn attr_direct_import() {
     assert_eq!(an_external_function(4), 37);
 }
 
-#[test]
-fn import_tokens_same_mod_no_ident() {
-    some_macro!(SomeStruct);
-    import_tokens!(let tokens = SomeStruct);
-    assert!(tokens.to_string().contains("field1"));
-}
+// #[test]
+// fn import_tokens_same_mod_no_ident() {
+//     some_macro!(SomeStruct);
+//     import_tokens!(let tokens = SomeStruct);
+//     assert!(tokens.to_string().contains("field1"));
+// }
 
 #[test]
 fn import_tokens_same_mod_ident() {

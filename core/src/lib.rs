@@ -129,69 +129,6 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
-pub fn export_tokens_internal_alt<T: Into<TokenStream2>, E: Into<TokenStream2>>(
-    attr: T,
-    tokens: E,
-) -> Result<TokenStream2> {
-    let attr = attr.into();
-    let item: Item = parse2(tokens.into())?;
-    let ident = match item.clone() {
-        Item::Const(item_const) => Some(item_const.ident),
-        Item::Enum(item_enum) => Some(item_enum.ident),
-        Item::ExternCrate(item_extern_crate) => Some(item_extern_crate.ident),
-        Item::Fn(item_fn) => Some(item_fn.sig.ident),
-        Item::Macro(item_macro) => item_macro.ident, // note this one might not have an Ident as well
-        Item::Macro2(item_macro2) => Some(item_macro2.ident),
-        Item::Mod(item_mod) => Some(item_mod.ident),
-        Item::Static(item_static) => Some(item_static.ident),
-        Item::Struct(item_struct) => Some(item_struct.ident),
-        Item::Trait(item_trait) => Some(item_trait.ident),
-        Item::TraitAlias(item_trait_alias) => Some(item_trait_alias.ident),
-        Item::Type(item_type) => Some(item_type.ident),
-        Item::Union(item_union) => Some(item_union.ident),
-        // Item::ForeignMod(item_foreign_mod) => None,
-        // Item::Use(item_use) => None,
-        // Item::Impl(item_impl) => None,
-        _ => None,
-    };
-    let ident = match ident {
-        Some(ident) => {
-            if let Ok(_) = parse2::<Nothing>(attr.clone()) {
-                ident
-            } else {
-                parse2::<Ident>(attr)?
-            }
-        }
-        None => parse2::<Ident>(attr)?,
-    };
-    let ident = export_tokens_macro_ident(&ident);
-    let output = quote! {
-        // HACK: import `forward_tokens_inner` to facilitate below hack
-        use ::macro_magic::__private::forward_tokens_inner;
-        #[macro_export]
-        macro_rules! #ident {
-            ($tokens_var:ident, $callback:path, $extra:expr) => {
-                $callback! {
-                    $tokens_var,
-                    #item,
-                    $extra
-                }
-            };
-            ($tokens_var:ident, $callback:ident) => {
-                // HACK: use ident to allow working in expr position
-                $callback! {
-                    $tokens_var,
-                    #item
-                }
-            };
-        }
-        #[allow(unused)]
-        #item
-    };
-    pretty_print(&output);
-    Ok(output)
-}
-
 /// The internal code behind the `#[export_tokens]` attribute macro.
 ///
 /// The `attr` variable contains the tokens for the optional naming [`struct@Ident`] (necessary
@@ -225,6 +162,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         // Item::ForeignMod(item_foreign_mod) => None,
         // Item::Use(item_use) => None,
         // Item::Impl(item_impl) => None,
+        // Item::Verbatim(_) => None,
         _ => None,
     };
     let ident = match ident {
@@ -238,17 +176,27 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let ident = export_tokens_macro_ident(&ident);
-    Ok(quote! {
+    let output = quote! {
+        // HACK: import `forward_tokens_inner` to facilitate below hack
         #[macro_export]
         macro_rules! #ident {
-            ($tokens_var:path, $callback:path, $extra:expr) => {
+            ($tokens_var:ident, $callback:path, $extra:expr) => {
                 $callback! {
                     $tokens_var,
                     #item,
                     $extra
                 }
             };
-            ($tokens_var:path, $callback:path) => {
+            // HACK: arm used to allow `forward_tokens` to be used in expr position when no
+            // attached item is provided
+            ($tokens_var:ident, __forward_tokens_inner) => {
+                ::macro_magic::__private::forward_tokens_inner! {
+                    $tokens_var,
+                    #item
+                }
+            };
+            // regular arm used by `import_tokens` (does not work in expr position)
+            ($tokens_var:ident, $callback:path) => {
                 $callback! {
                     $tokens_var,
                     #item
@@ -257,7 +205,9 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         }
         #[allow(unused)]
         #item
-    })
+    };
+    //pretty_print(&output);
+    Ok(output)
 }
 
 /// The internal implementation for the `import_tokens` macro.
@@ -334,19 +284,18 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
     } else {
         quote!(#source_ident_seg)
     };
-    let inner_macro_path = quote!(forward_tokens_inner);
     let target_path = args.target;
     if let Some(extra) = args.extra {
         Ok(quote! {
             #source_path! {
                 #target_path,
-                #inner_macro_path,
+                ::macro_magic::__private::forward_tokens_inner,
                 #extra
             }
         })
     } else {
         Ok(quote! {
-            #source_path! { #target_path, #inner_macro_path }
+            #source_path! { #target_path, __forward_tokens_inner }
         })
     }
 }

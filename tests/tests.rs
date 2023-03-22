@@ -112,3 +112,27 @@ fn import_tokens_different_mod_ident() {
         "fn minus_minus < T : Into < i32 > > (n : T) -> i32 { n . into () - 1 }"
     );
 }
+
+#[export_tokens]
+struct ExternalStruct {
+    foo: u32,
+    bar: u64,
+    fizz: i64,
+}
+
+#[combine_structs(ExternalStruct)]
+struct LocalStruct {
+    biz: bool,
+    baz: i32,
+}
+
+#[test]
+fn test_combine_structs_example() {
+    let _something = LocalStruct {
+        foo: 42,
+        bar: 19,
+        fizz: -22,
+        biz: true,
+        baz: 87,
+    };
+}

@@ -1,7 +1,7 @@
 use macro_magic::*;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Item, ItemMod, Path};
+use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Item, ItemMod, ItemStruct, Path};
 
 /// An example proc macro built on top of `import_tokens_internal`.
 ///
@@ -131,5 +131,42 @@ pub fn item_level_proc(tokens: TokenStream) -> TokenStream {
     quote!(
         struct SomeInjectedStruct {}
     )
+    .into()
+}
+
+#[import_tokens_attr]
+#[proc_macro_attribute]
+pub fn combine_structs(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let foreign_struct = parse_macro_input!(attr as ItemStruct);
+    let local_struct = parse_macro_input!(tokens as ItemStruct);
+    let Fields::Named(local_fields) = local_struct.fields else {
+        return Error::new(
+            local_struct.fields.span(),
+            "unnamed fields are not supported"
+        ).to_compile_error().into()
+    };
+    let Fields::Named(foreign_fields) = foreign_struct.fields else {
+        return Error::new(
+            foreign_struct.fields.span(),
+            "unnamed fields are not supported"
+        ).to_compile_error().into()
+    };
+    let local_fields = local_fields.named.iter();
+    let foreign_fields = foreign_fields.named.iter();
+    let attrs = local_struct.attrs;
+    let generics = local_struct.generics;
+    let ident = local_struct.ident;
+    let vis = local_struct.vis;
+    quote! {
+        #(#attrs)
+        *
+        #vis struct #ident<#generics> {
+            #(#local_fields),
+            *
+            ,
+            #(#foreign_fields),
+            *
+        }
+    }
     .into()
 }

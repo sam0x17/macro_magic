@@ -123,6 +123,20 @@ fn import_tokens_different_mod_ident() {
 }
 
 #[export_tokens]
+fn a_random_fn() {
+    println!("hey");
+}
+
+#[test]
+fn macro_calls_inside_fn_current_file() {
+    let tokens = example_tokens_proc!(a_random_fn);
+    assert_eq!(
+        tokens.to_string(),
+        "fn a_random_fn() { println! (\"hey\") ; }"
+    );
+}
+
+#[export_tokens]
 struct ExternalStruct {
     foo: u32,
     bar: u64,

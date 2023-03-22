@@ -94,6 +94,19 @@ fn attr_direct_import() {
 }
 
 #[test]
+fn test_forward_tokens() {
+    #[macro_export]
+    macro_rules! receiver {
+        ($tokens:item) => {
+            stringify!($tokens)
+        };
+    }
+
+    let result = forward_tokens!(LionStruct, receiver);
+    assert_eq!(result, "struct LionStruct {}");
+}
+
+#[test]
 fn import_tokens_same_mod_no_ident() {
     some_macro!(SomeStruct);
     import_tokens!(let tokens = SomeStruct);

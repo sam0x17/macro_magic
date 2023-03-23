@@ -38,13 +38,6 @@ pub use macro_magic_macros::{
     import_tokens_proc,
 };
 
-#[macro_export]
-macro_rules! expand_item_safe {
-    ($($tokens:tt)*) => {
-        $($tokens)*
-    };
-}
-
 /// Contains re-exports required at compile-time by the macro_magic macros and support
 /// functions.
 #[doc(hidden)]

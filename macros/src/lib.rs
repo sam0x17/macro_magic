@@ -114,25 +114,37 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
     }
 }
 
+/// Allows you to import the tokens of an external item marked with `#[export_tokens]` whose
+/// path is already known at compile-time without having to do any additional parsing.
+///
+/// The macro lets you define as its argument a let variable declaration that will expand to
+/// that variable being set to the tokens of the specified external item at compile-time.
+///
+/// For example:
+///
+/// ```ignore
+/// import_tokens!(let tokens = external_crate::SomeItem);
+/// ```
+///
+/// will expand such that a `tokens` variable will be created containing the tokens for the
+/// `SomeItem` item that exists in an external crate. For this to work,
+/// `external_crate::SomeItem` must be the path of an item that has `#[export_tokens]` attached
+/// to it. The imported tokens wil be of type `TokenStream2`.
+///
+/// Unfortunately this macro isn't very useful, because it is quite rare that you already know
+/// the path of the item you want to import _inside_ your proc macro. Note that having the
+/// _tokens_ for the path you want isn't the same as having those tokens already expanded in
+/// the current context.
+///
+/// That said, this can be quite useful for scenarios where for whatever reason you have an
+/// item with a set-in-stone path whose tokens you need to access at compile time.
+///
+/// For more powerful importing capabilities, see [`import_tokens_proc`] and
+/// [`import_tokens_attr`], which are capable of importing items based on a path that has been
+/// pased to a regular proc macro or as the argument to an attribute proc macro.
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     match import_tokens_internal(tokens) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn import_tokens_inner(tokens: TokenStream) -> TokenStream {
-    match import_tokens_inner_internal(tokens) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn forward_tokens_inner(tokens: TokenStream) -> TokenStream {
-    match forward_tokens_inner_internal(tokens) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -149,6 +161,26 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_attr_internal(attr, tokens) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+/// A helper macro used by [`import_tokens`]. Hidden from docs.
+#[doc(hidden)]
+#[proc_macro]
+pub fn import_tokens_inner(tokens: TokenStream) -> TokenStream {
+    match import_tokens_inner_internal(tokens) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+/// A helper macro used by [`forward_tokens`]. Hidden from docs.
+#[doc(hidden)]
+#[proc_macro]
+pub fn forward_tokens_inner(tokens: TokenStream) -> TokenStream {
+    match forward_tokens_inner_internal(tokens) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }

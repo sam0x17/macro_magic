@@ -25,6 +25,7 @@ mod keywords {
 
     custom_keyword!(proc_macro_attribute);
     custom_keyword!(proc_macro);
+    custom_keyword!(proc_macro_derive);
 }
 
 /// Used to parse args that were passed to [`forward_tokens_internal`].
@@ -330,6 +331,44 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     })
 }
 
+/// Delineates the different types of proc macro
+pub enum ProcMacroType {
+    Normal,
+    Attribute,
+    Derive,
+}
+
+/// Parses a proc macro function from a `TokenStream2`
+pub fn parse_proc_macro<T: Into<TokenStream2>>(
+    tokens: T,
+    macro_type: ProcMacroType,
+) -> Result<ItemFn> {
+    let proc_fn = parse2::<ItemFn>(tokens.into())?;
+    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+    if proc_fn
+        .attrs
+        .iter()
+        .find(|attr| match macro_type {
+            ProcMacroType::Normal => {
+                syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok()
+            }
+            ProcMacroType::Attribute => {
+                syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok()
+            }
+            ProcMacroType::Derive => {
+                syn::parse2::<keywords::proc_macro_derive>(attr.path.to_token_stream()).is_ok()
+            }
+        })
+        .is_none()
+    {
+        return Err(Error::new(
+            proc_fn.sig.ident.span(),
+            "can only be attached to a function with #[proc_macro_attribute]",
+        ));
+    };
+    Ok(proc_fn)
+}
+
 /// Internal implementation for the `#[import_tokens_attr]` attribute.
 ///
 /// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
@@ -339,24 +378,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     parse2::<Nothing>(attr.into())?;
-    let proc_fn = parse2::<ItemFn>(tokens.into())?;
-    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
-    if proc_fn
-        .attrs
-        .iter()
-        .find(|attr| {
-            syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok()
-        })
-        .is_none()
-    {
-        return Err(Error::new(
-            proc_fn.sig.ident.span(),
-            "can only be attached to a function with #[proc_macro_attribute]",
-        ));
-    };
-
-    // parsing complete, we have a valid attribute macro function (all other errors will be
-    // handled by the presence of the #[proc_macro_atribute] attribute)
+    let proc_fn = parse_proc_macro(tokens, ProcMacroType::Attribute)?;
 
     // outer macro
     let orig_sig = proc_fn.sig;
@@ -424,22 +446,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     parse2::<Nothing>(attr.into())?;
-    let proc_fn = parse2::<ItemFn>(tokens.into())?;
-    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
-    if proc_fn
-        .attrs
-        .iter()
-        .find(|attr| syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok())
-        .is_none()
-    {
-        return Err(Error::new(
-            proc_fn.sig.ident.span(),
-            "can only be attached to a function with #[proc_macro]",
-        ));
-    };
-
-    // parsing complete, we have a valid proc macro function (all other errors will be handled
-    // by the presence of the #[proc_macro] attribute)
+    let proc_fn = parse_proc_macro(tokens, ProcMacroType::Normal)?;
 
     // outer macro
     let orig_sig = proc_fn.sig;

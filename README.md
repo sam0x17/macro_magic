@@ -5,7 +5,7 @@
 [![Crates.io](https://img.shields.io/crates/d/macro_magic)](https://crates.io/crates/macro_magic)
 [![docs.rs](https://img.shields.io/docsrs/macro_magic?label=docs)](https://docs.rs/macro_magic/latest/macro_magic/)
 
-This crate provides `#[export_tokens]` and a number of companion macros, including
+This crate provides the `#[export_tokens]` macro and a number of companion macros, including
 `#[import_tokens_proc]` and `#[import_tokens_attr]`. When used in tandem with
 `#[export_tokens]`, these macros allow you to create regular and attribute proc macros in which
 you can import and make use of the tokens of external/foreign items marked with

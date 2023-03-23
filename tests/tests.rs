@@ -198,3 +198,18 @@ fn test_require_example() {
     require!(external_crate::an_external_module);
     assert_eq!(my_cool_function(), 567);
 }
+
+#[custom_export_tokens]
+struct Wombat {
+    field1: u32,
+    field2: u64,
+}
+
+#[test]
+fn test_export_tokens_alias() {
+    let tokens = example_tokens_proc!(Wombat);
+    assert_eq!(
+        tokens.to_string(),
+        "struct Wombat { field1 : u32, field2 : u64, }"
+    );
+}

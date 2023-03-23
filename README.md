@@ -19,12 +19,6 @@ and crate boundaries.
 `macro_magic` is designed to work with stable Rust, and is fully `no_std` compatible (in fact,
 there is a unit test to ensure everything is `no_std` safe).
 
-One thing that `macro_magic` _doesn't_ provide is the ability to build up state information
-across multiple macro invocations, however this problem can be tackled effectively using the
-[outer macro pattern](https://www.youtube.com/watch?v=aEWbZxNCH0A). There is also my
-(deprecated but functional) [macro_state](https://crates.io/crates/macro_state) crate, which
-relies on some incidental features of the rust compiler that could be removed in the future.
-
 ## General Syntax
 
 You can use `macro_magic` to build regular and attribute proc macros that look like this:
@@ -221,3 +215,17 @@ Notice that this hypothetical `require!` macro is dangerous for two reasons:
   something you are importing, you will get a compiler error (this is good, though).
 
 These are just _some_ of the capabilities of `macro_magic` 🪄
+
+## Limitations
+
+One thing that `macro_magic` _doesn't_ provide is the ability to build up state information
+across multiple macro invocations, however this problem can be tackled effectively using the
+[outer macro pattern](https://www.youtube.com/watch?v=aEWbZxNCH0A). There is also my
+(deprecated but functional) [macro_state](https://crates.io/crates/macro_state) crate, which
+relies on some incidental features of the rust compiler that could be removed in the future.
+
+Note that the transition from 0.1.x6 to 0.2.0 of `macro_magic` removed and/or re-wrote a number
+of features that relied on a non-future-proof behavior of writing/reading files from the
+`OUT_DIR`. Versions of `macro_magic` >= 0.2.0 are completely future-proof and safe, however
+features that provided the ability to enumerate all the `#[export_tokens]` calls in a namespace
+have been removed. The proper way to do this is with the outer macro pattern, mentioned above.

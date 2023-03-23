@@ -84,7 +84,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// This is used internally as the basis for many of the other macros in this crate, but can
 /// also be useful in its own right in certain situations.
 ///
-/// Note that the referenced item _must_ have the [`#[export_tokens]`](`export_tokens`)
+/// Note that the referenced item _must_ have the [`#[export_tokens]`][`macro@export_tokens`]
 /// attribute attached to it, or this will not work.
 ///
 /// This macro can be used in item contexts, and is also safe in expr contexts as long as both
@@ -93,8 +93,8 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 ///
 /// There is also an optional third argument called "extra" which allows you to forward string
 /// literal data to the target macro. This is used by
-/// [`#[import_tokens_attr]`](`import_tokens_proc`) to pass the tokens for the attached item
-/// in addition to the tokens for the external item.
+/// [`#[import_tokens_attr]`](`macro@import_tokens_proc`) to pass the tokens for the attached
+/// item in addition to the tokens for the external item.
 ///
 /// ## Example
 ///
@@ -118,8 +118,8 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 }
 
 /// Allows you to import the tokens of an external item marked with
-/// [`#[export_tokens]`](`export_tokens`) whose path is already known at compile-time without
-/// having to do any additional parsing.
+/// [`#[export_tokens]`][`macro@export_tokens`] whose path is already known at compile-time
+/// without having to do any additional parsing.
 ///
 /// The macro lets you define as its argument a let variable declaration that will expand to
 /// that variable being set to the tokens of the specified external item at compile-time.
@@ -133,8 +133,8 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 /// will expand such that a `tokens` variable will be created containing the tokens for the
 /// `SomeItem` item that exists in an external crate. For this to work,
 /// `external_crate::SomeItem` must be the path of an item that has
-/// [`#[export_tokens]`](`export_tokens`) attached to it. The imported tokens wil be of type
-/// `TokenStream2`.
+/// [`#[export_tokens]`][`macro@export_tokens`] attached to it. The imported tokens wil be of
+/// type `TokenStream2`.
 ///
 /// Unfortunately this macro isn't very useful, because it is quite rare that you already know
 /// the path of the item you want to import _inside_ your proc macro. Note that having the
@@ -144,9 +144,9 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 /// That said, this can be quite useful for scenarios where for whatever reason you have an
 /// item with a set-in-stone path whose tokens you need to access at compile time.
 ///
-/// For more powerful importing capabilities, see [`import_tokens_proc`] and
-/// [`import_tokens_attr`], which are capable of importing items based on a path that has been
-/// pased to a regular proc macro or as the argument to an attribute proc macro.
+/// For more powerful importing capabilities, see [`macro@import_tokens_proc`] and
+/// [`macro@import_tokens_attr`], which are capable of importing items based on a path that has
+/// been pased to a regular proc macro or as the argument to an attribute proc macro.
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     match import_tokens_internal(tokens) {
@@ -179,7 +179,7 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// ```
 ///
 /// In this case the `tokens` variable will contain the tokens for the `some_crate::some_item`
-/// item, as long as it has been marked with [`#[export_tokens]`](`export_tokens`).
+/// item, as long as it has been marked with [`#[export_tokens]`][`macro@export_tokens`].
 #[proc_macro_attribute]
 pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_proc_internal(attr, tokens) {
@@ -193,8 +193,8 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// attribute macro.
 ///
 /// For this to work, the item whose path is provided as the `attr` / first argument _must_
-/// have the [`#[export_tokens]`](`export_tokens`) attribute attached to it, or this will not
-/// work.
+/// have the [`#[export_tokens]`][`macro@export_tokens`] attribute attached to it, or this will
+/// not work.
 ///
 /// For example:
 ///
@@ -235,7 +235,7 @@ pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream
     }
 }
 
-/// A helper macro used by [`import_tokens`]. Hidden from docs.
+/// A helper macro used by [`macro@import_tokens`]. Hidden from docs.
 #[doc(hidden)]
 #[proc_macro]
 pub fn import_tokens_inner(tokens: TokenStream) -> TokenStream {
@@ -245,7 +245,7 @@ pub fn import_tokens_inner(tokens: TokenStream) -> TokenStream {
     }
 }
 
-/// A helper macro used by [`forward_tokens`]. Hidden from docs.
+/// A helper macro used by [`macro@forward_tokens`]. Hidden from docs.
 #[doc(hidden)]
 #[proc_macro]
 pub fn forward_tokens_inner(tokens: TokenStream) -> TokenStream {

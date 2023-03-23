@@ -188,6 +188,45 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
     }
 }
 
+/// Can be attached to an attribute proc macro function, causing it to receive the tokens for
+/// the external item referred to by the path provided as the `attr` / first argument to the
+/// attribute macro.
+///
+/// For this to work, the item whose path is provided as the `attr` / first argument _must_
+/// have the [`#[export_tokens]`](`export_tokens`) attribute attached to it, or this will not
+/// work.
+///
+/// For example:
+///
+/// ```ignore
+/// #[import_tokens_attr]
+/// #[proc_macro_attribute]
+/// pub fn my_attribute(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+///     let external_item = parse_macro_input!(attr as Item);
+///     let attached_item = parse_macro_input!(tokens as Item);
+///     // ...
+/// }
+/// ```
+///
+/// Which could then be used like:
+///
+/// ```ignore
+/// #[my_attribute(path::to::AnItem)]
+/// mod my_mod {
+///     // ...
+/// }
+/// ```
+///
+/// This would result in the `external_item` variable having the parsed tokens of the external
+/// `path::to::AnItem` item, and the `attached_item` variable having the parsed tokens of the
+/// item the attribute is attached to (`my_mod`) as usual.
+///
+/// This allows to to create extremely powerful attribute macros that take in an export tokens
+/// path as their `attr` and internally receive the tokens for that external item. For example
+/// you could write an attribute macro that combines two modules or two structs together, among
+/// many other things.
+///
+/// See `tests.rs` for more examples.
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_attr_internal(attr, tokens) {

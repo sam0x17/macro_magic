@@ -84,6 +84,9 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// This is used internally as the basis for many of the other macros in this crate, but can
 /// also be useful in its own right in certain situations.
 ///
+/// Note that the referenced item _must_ have the [`#[export_tokens]`](`export_tokens`)
+/// attribute attached to it, or this will not work.
+///
 /// This macro can be used in item contexts, and is also safe in expr contexts as long as both
 /// arguments passed are idents rather than paths (can't contain `::`). This is an unfortunate
 /// side effect of how decl macros are implemented in Rust
@@ -114,8 +117,9 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
     }
 }
 
-/// Allows you to import the tokens of an external item marked with `#[export_tokens]` whose
-/// path is already known at compile-time without having to do any additional parsing.
+/// Allows you to import the tokens of an external item marked with
+/// [`#[export_tokens]`](`export_tokens`) whose path is already known at compile-time without
+/// having to do any additional parsing.
 ///
 /// The macro lets you define as its argument a let variable declaration that will expand to
 /// that variable being set to the tokens of the specified external item at compile-time.
@@ -128,8 +132,9 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 ///
 /// will expand such that a `tokens` variable will be created containing the tokens for the
 /// `SomeItem` item that exists in an external crate. For this to work,
-/// `external_crate::SomeItem` must be the path of an item that has `#[export_tokens]` attached
-/// to it. The imported tokens wil be of type `TokenStream2`.
+/// `external_crate::SomeItem` must be the path of an item that has
+/// [`#[export_tokens]`](`export_tokens`) attached to it. The imported tokens wil be of type
+/// `TokenStream2`.
 ///
 /// Unfortunately this macro isn't very useful, because it is quite rare that you already know
 /// the path of the item you want to import _inside_ your proc macro. Note that having the
@@ -150,6 +155,31 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     }
 }
 
+/// An attribute macro that can be attached to a proc macro function definition that will cause
+/// it to receive the tokens of the external item referred to by its argument as input to your
+/// proc macro.
+///
+/// For example:
+///
+/// ```ignore
+/// #[import_tokens_proc]
+/// #[proc_macro]
+/// pub fn my_macro(tokens: TokenStream) -> TokenStream {
+///     // `tokens` will contain the tokens of
+///     let item = parse_macro_input!(tokens as Item);
+///     // you can now do stuff with `item`
+///     // ...
+/// }
+/// ```
+///
+/// Which you could use like this:
+///
+/// ```ignore
+/// my_macro!(some_crate::some_item);
+/// ```
+///
+/// In this case the `tokens` variable will contain the tokens for the `some_crate::some_item`
+/// item, as long as it has been marked with [`#[export_tokens]`](`export_tokens`).
 #[proc_macro_attribute]
 pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_proc_internal(attr, tokens) {

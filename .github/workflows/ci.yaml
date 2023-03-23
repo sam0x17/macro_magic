@@ -27,7 +27,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
       - name: cargo fmt
         run: cargo fmt -- --check
-  cargo-fmt:
+  cargo-doc:
     name: cargo doc
     runs-on: ubuntu-latest
     steps:

@@ -188,3 +188,5 @@ pub fn require(tokens: TokenStream) -> TokenStream {
     }
     .into()
 }
+
+export_tokens_alias!(custom_export_tokens);

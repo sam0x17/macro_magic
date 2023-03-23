@@ -78,6 +78,21 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     }
 }
 
+/// Creates an attribute proc macro that is an alias for
+/// [`#[export_tokens]`](`macro@export_tokens`).
+///
+/// Simply pass an ident to this proc macro, and an alias for
+/// [`#[export_tokens]`](`macro@export_tokens`) will be created with the specified name.
+///
+/// Can only be used within a proc macro crate.
+#[proc_macro]
+pub fn export_tokens_alias(tokens: TokenStream) -> TokenStream {
+    match export_tokens_alias_internal(tokens) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
 /// "Forwards" the tokens of the specified exported item (specified by path as the first arg)
 /// to the specified proc or `macro_rules!` macro (specified by path as the second arg).
 ///
@@ -180,6 +195,8 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 ///
 /// In this case the `tokens` variable will contain the tokens for the `some_crate::some_item`
 /// item, as long as it has been marked with [`#[export_tokens]`][`macro@export_tokens`].
+///
+/// Can only be used within a proc macro crate.
 #[proc_macro_attribute]
 pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_proc_internal(attr, tokens) {
@@ -227,6 +244,8 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// many other things.
 ///
 /// See `tests.rs` for more examples.
+///
+/// Can only be used within a proc macro crate.
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_attr_internal(attr, tokens) {

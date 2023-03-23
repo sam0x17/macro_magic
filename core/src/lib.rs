@@ -222,6 +222,21 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     Ok(output)
 }
 
+/// Internal implementation of `export_tokens_alias!`. Allows creating a renamed/rebranded
+/// macro that does the same thing as `#[export_tokens]`
+pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+    let alias = parse2::<Ident>(tokens.into())?;
+    Ok(quote! {
+        #[proc_macro_attribute]
+        pub fn #alias(attr: proc_macro::TokenStream, tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+            match ::macro_magic::core::export_tokens_internal(attr, tokens) {
+                Ok(tokens) => tokens.into(),
+                Err(err) => err.to_compile_error().into(),
+            }
+        }
+    })
+}
+
 /// The internal implementation for the `import_tokens` macro.
 ///
 /// You can call this in your own proc macros to make use of the `import_tokens` functionality

@@ -5,33 +5,30 @@
 //! ![Crates.io](https://img.shields.io/crates/d/macro_magic)
 //! ![docs.rs](https://img.shields.io/docsrs/macro_magic?label=docs)
 //!
-//! This crate provides two powerful proc macros, [`#[export_tokens]`](`macro@export_tokens`)
-//! and [`import_tokens!`]. When used in tandem, these two macros allow you to mark items in
-//! other files (and even in other crates, as long as you can modify the source code) for
-//! export. The tokens of these items can then be imported by the [`import_tokens!`] macro using
-//! the path to an item you have exported.
+//! This crate provides an [`#[export_tokens]`](`export_tokens`) attribute macro, and a number
+//! of companion macros, most prominently [`#[import_tokens_proc]`](`import_tokens_proc`) and
+//! [`#[import_tokens_attr]`](`import_tokens_attr`), which, when used in tandem with
+//! [`#[export_tokens]`](`export_tokens`), allow you to create regular and attribute proc
+//! macros in which you can import and make use of the tokens of external/foreign items marked
+//! with [`#[export_tokens]`](`export_tokens`) in other modules, files, and even in other
+//! crates merely by referring to them by name/path.
 //!
-//! Two advanced macros, [`import_tokens_indirect!`] and [`read_namespace!`] are also provided
-//! when the "indirect" feature is enabled. These macros are capable of going across crate
-//! boundaries without complicating your dependencies and can return collections of tokens
-//! based on a shared common prefix.
+//! Among other things, the patterns introduced by `macro_magic` can be used to implement safe
+//! and efficient exportation and importation of item tokens within the same file, and even
+//! across file and crate boundaries.
 //!
-//! Among other things, the patterns introduced by Macro Magic, and in particular by the
-//! "indirect" feature be used to implement safe and efficient coordination and communication
-//! between macro invocations in the same file, and even across different files and different
-//! crates. This crate officially supercedes my previous effort at achieving this,
-//! [macro_state](https://crates.io/crates/macro_state), which was designed to allow for
-//! building up and making use of state information across multiple macro invocations. All of
-//! the things you can do with `macro_state` you can also achieve with this crate, albeit with
-//! slightly different patterns.
+//! `macro_magic` is designed to work with stable Rust, and is fully `no_std` compatible (in
+//! fact, there is a unit test to ensure everything is `no_std` safe).
 //!
-//! `macro_magic` is designed to work with stable Rust.
+//! One thing that `macro_magic` _doesn't_ provide is the ability to build up state information
+//! across multiple macro invocations, however this problem can be tackled effectively using
+//! the [outer macro pattern](https://www.youtube.com/watch?v=aEWbZxNCH0A). There is also my
+//! (deprecated but functional) [macro_state](https://crates.io/crates/macro_state) crate,
+//! which relies on some incidental features of the rust compiler that could be removed in the
+//! future.
 
-/// Contains the internal code behind the `macro_magic` macros in a re-usable and extensible
-/// form, including the ability to make custom macros that behave like `#[export_tokens]` and
-/// `import_tokens_indirect!`. This module obeys the "indirect" / "indirect-read"
-/// "indirect-write" feature conventions so make sure the proper features are enabled if you
-/// are trying to access anything involving indirect exports/imports.
+/// Contains the internal code behind the `macro_magic` macros in a re-usable form, in case you
+/// need to design new macros that utilize some of the internal functionality of `macro_magic`.
 pub mod core {
     pub use macro_magic_core::*;
 }
@@ -48,8 +45,7 @@ macro_rules! expand_item_safe {
 }
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support
-/// functions. This includes a re-export of [`import_tokens_inner`] and some [`syn`]-related
-/// types include [`TokenStream2`](`syn::__private::TokenStream2`).
+/// functions.
 #[doc(hidden)]
 pub mod __private {
     pub use macro_magic_macros::*;

@@ -2,6 +2,7 @@
 members = [
     "core",
     "macros",
+    "core_macros",
     "tests/test_macros",
     "tests/external_crate"
 ]

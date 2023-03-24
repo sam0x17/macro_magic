@@ -14,3 +14,4 @@ prettyplease = "0.1"
 derive-syn-parse = "0.1.5"
 proc-macro2 = "1.0"
 convert_case = "0.6.0"
+macro_magic_core_macros = { path = "../core_macros" }

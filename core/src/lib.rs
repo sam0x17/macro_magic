@@ -4,6 +4,7 @@
 
 use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
+use macro_magic_core_macros::*;
 use proc_macro2::Punct;
 use proc_macro2::Spacing;
 use proc_macro2::Span;
@@ -19,7 +20,7 @@ use syn::{
     Token, Visibility,
 };
 
-pub const MACRO_MAGIC_ROOT: &'static str = env!("MACRO_MAGIC_ROOT");
+pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
 
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {

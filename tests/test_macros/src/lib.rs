@@ -20,8 +20,9 @@ use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Item, ItemMod, Ite
 pub fn include_impl(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let external_path = parse_macro_input!(attr as Path);
     let _item_mod = parse_macro_input!(tokens as ItemMod);
+    let mm_path = macro_magic::core::macro_magic_root();
     quote! {
-        ::macro_magic::forward_tokens! { #external_path, include_impl_inner }
+        #mm_path::forward_tokens! { #external_path, include_impl_inner }
     }
     .into()
 }

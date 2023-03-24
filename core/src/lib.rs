@@ -19,6 +19,8 @@ use syn::{
     Token, Visibility,
 };
 
+pub const MACRO_MAGIC_ROOT: &'static str = env!("MACRO_MAGIC_ROOT");
+
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {
     use syn::custom_keyword;
@@ -108,10 +110,32 @@ pub fn pretty_print<T: Into<TokenStream2> + Clone>(tokens: &T) {
     );
 }
 
-/// Appends `member` to the end of the `::macro_magic::__private` path and returns the
-/// resulting [`Path`]
-pub fn private_path(member: &TokenStream2) -> Path {
-    parse_quote!(::macro_magic::__private::#member)
+/// Safely access the `macro_magic` root based on the `MACRO_MAGIC_ROOT` env var, which
+/// defaults to `::macro_magic`, but can be configured via the `[env]` section of
+/// `.cargo/config.toml`
+pub fn macro_magic_root() -> Path {
+    parse2::<Path>(
+        MACRO_MAGIC_ROOT
+            .parse::<TokenStream2>()
+            .expect("environment var `MACRO_MAGIC_ROOT` must parse to a valid TokenStream2"),
+    )
+    .expect("environment variable `MACRO_MAGIC_ROOT` must parse to a valid syn::Path")
+}
+
+/// Safely access a subpath of `macro_magic::__private`
+pub fn private_path<T: Into<TokenStream2> + Clone>(subpath: &T) -> Path {
+    let subpath = subpath.clone().into();
+    let root = macro_magic_root();
+    parse_quote!(#root::__private::#subpath)
+}
+
+/// Safely access a subpath of `macro_magic`
+pub fn macro_magic_path<T: Into<TokenStream2> + Clone>(subpath: &T) -> Path {
+    let subpath = subpath.clone().into();
+    let root = macro_magic_root();
+    parse_quote! {
+        #root::#subpath
+    }
 }
 
 /// "Flattens" an [`struct@Ident`] by converting it to snake case.
@@ -181,6 +205,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let ident = export_tokens_macro_ident(&ident);
+    let fwd_tokens_inner_path = private_path(&quote!(forward_tokens_inner));
     let output = quote! {
         // HACK: import `forward_tokens_inner` to facilitate below hack
         #[macro_export]
@@ -195,14 +220,14 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
             };
             // HACK: arm used to allow `forward_tokens` to be used in expr position
             ($tokens_var:ident, __forward_tokens_inner) => {
-                ::macro_magic::__private::forward_tokens_inner! {
+                #fwd_tokens_inner_path! {
                     $tokens_var,
                     #item
                 }
             };
             // HACK: extra arm for `import_tokens_same_mod_no_ident` (does not work in expr position)
             ($tokens_var:path, __forward_tokens_inner) => {
-                ::macro_magic::__private::forward_tokens_inner! {
+                #fwd_tokens_inner_path! {
                     $tokens_var,
                     #item
                 }
@@ -226,10 +251,11 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 /// macro that does the same thing as `#[export_tokens]`
 pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let alias = parse2::<Ident>(tokens.into())?;
+    let export_tokens_internal_path = macro_magic_path(&quote!(core::export_tokens_internal));
     Ok(quote! {
         #[proc_macro_attribute]
         pub fn #alias(attr: proc_macro::TokenStream, tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            match ::macro_magic::core::export_tokens_internal(attr, tokens) {
+            match #export_tokens_internal_path(attr, tokens) {
                 Ok(tokens) => tokens.into(),
                 Err(err) => err.to_compile_error().into(),
             }
@@ -312,11 +338,12 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
         quote!(#source_ident_seg)
     };
     let target_path = args.target;
+    let fwd_tokens_inner_path = private_path(&quote!(forward_tokens_inner));
     if let Some(extra) = args.extra {
         Ok(quote! {
             #source_path! {
                 #target_path,
-                ::macro_magic::__private::forward_tokens_inner,
+                #fwd_tokens_inner_path,
                 #extra
             }
         })
@@ -423,19 +450,20 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     };
 
     let pound = Punct::new('#', Spacing::Alone);
+    let mm_path = macro_magic_root();
 
     // final quoted tokens
     Ok(quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
-            use ::macro_magic::__private::*;
-            use ::macro_magic::__private::quote::ToTokens;
+            use #mm_path::__private::*;
+            use #mm_path::__private::quote::ToTokens;
             let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
             let path = syn::parse_macro_input!(#first_arg_ident as syn::Path);
             quote::quote! {
-                ::macro_magic::forward_tokens! {
+                #mm_path::forward_tokens! {
                     #pound path,
                     #inner_macro_ident,
                     #pound attached_item_str
@@ -446,7 +474,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         #[doc(hidden)]
         #[proc_macro]
         pub #inner_sig {
-            let __combined_args = ::macro_magic::__private::syn::parse_macro_input!(#first_arg_ident as ::macro_magic::core::AttrItemWithExtra);
+            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#first_arg_ident as #mm_path::core::AttrItemWithExtra);
             let (#first_arg_ident, #second_arg_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #first_arg_ident: proc_macro::TokenStream = #first_arg_ident.to_token_stream().into();
             let #second_arg_ident: proc_macro::TokenStream = #second_arg_ident.value().parse().unwrap();
@@ -483,19 +511,20 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     };
 
     let pound = Punct::new('#', Spacing::Alone);
+    let mm_path = macro_magic_root();
 
     Ok(quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
-            use ::macro_magic::__private::*;
-            use ::macro_magic::__private::quote::ToTokens;
+            use #mm_path::__private::*;
+            use #mm_path::__private::quote::ToTokens;
             let source_path = match syn::parse::<syn::Path>(#second_arg_ident) {
                 Ok(path) => path,
                 Err(e) => return e.to_compile_error().into(),
             };
             quote::quote! {
-                ::macro_magic::forward_tokens! {
+                #mm_path::forward_tokens! {
                     #pound source_path,
                     #inner_macro_ident
                 }

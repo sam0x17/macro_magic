@@ -2,6 +2,10 @@
 name = "macro_magic_core_macros"
 version = "0.2.2"
 edition = "2021"
+description = "Support macros for macro_magic_core"
+repository = "https://github.com/sam0x17/macro_magic"
+homepage = "https://sam0x17.dev"
+license = "MIT"
 
 [lib]
 proc-macro = true

@@ -99,6 +99,91 @@ pub struct ImportedTokens {
     pub item: Item,
 }
 
+/// Delineates the different types of proc macro
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum ProcMacroType {
+    /// Corresponds with `#[proc_macro]`
+    Normal,
+    /// Corresponds with `#[proc_macro_attribute]`
+    Attribute,
+    /// Corresponds with `#[proc_macro_derive]`
+    Derive,
+}
+
+impl ProcMacroType {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            ProcMacroType::Normal => "#[proc_macro]",
+            ProcMacroType::Attribute => "#[proc_macro_attribute]",
+            ProcMacroType::Derive => "#[proc_macro_derive]",
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct ProcMacro {
+    /// The underlying proc macro function definition
+    pub proc_fn: ItemFn,
+    /// Specified the type of this proc macro, i.e. attribute vs normal vs derive
+    pub macro_type: ProcMacroType,
+}
+
+impl ProcMacro {
+    /// Constructs a [`ProcMacro`] from anything compatible with [`TokenStream2`].
+    pub fn from<T: Into<TokenStream2>>(tokens: T) -> Result<Self> {
+        let proc_fn = parse2::<ItemFn>(tokens.into())?;
+        let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+        let mut macro_type: Option<ProcMacroType> = None;
+        if proc_fn
+            .attrs
+            .iter()
+            .find(|attr| {
+                if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
+                    macro_type = Some(ProcMacroType::Normal);
+                } else if syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream())
+                    .is_ok()
+                {
+                    macro_type = Some(ProcMacroType::Attribute);
+                } else if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
+                    macro_type = Some(ProcMacroType::Derive);
+                }
+                macro_type.is_some()
+            })
+            .is_none()
+        {
+            return Err(Error::new(
+                proc_fn.sig.ident.span(),
+                "can only be attached to a proc macro function definition",
+            ));
+        };
+        let macro_type = macro_type.unwrap();
+        Ok(ProcMacro {
+            proc_fn,
+            macro_type,
+        })
+    }
+}
+
+/// Parses a proc macro function from a `TokenStream2` expecting only the specified `macro_type`
+pub fn parse_proc_macro<T: Into<TokenStream2>>(
+    tokens: T,
+    macro_type: ProcMacroType,
+) -> Result<ItemFn> {
+    let proc_macro = ProcMacro::from(tokens.into())?;
+    if proc_macro.macro_type != macro_type {
+        let actual = proc_macro.macro_type.to_str();
+        let desired = macro_type.to_str();
+        return Err(Error::new(
+            proc_macro.proc_fn.sig.ident.span(),
+            format!(
+                "expected a function definition with {} but found {} instead",
+                actual, desired
+            ),
+        ));
+    }
+    Ok(proc_macro.proc_fn)
+}
+
 /// Convenience function that will pretty-print anything compatible with [`TokenStream2`]
 /// including [`TokenStream2`], `TokenStream`, and all [`syn`] items.
 ///
@@ -372,44 +457,6 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
             #combined_tokens
         }
     })
-}
-
-/// Delineates the different types of proc macro
-pub enum ProcMacroType {
-    Normal,
-    Attribute,
-    Derive,
-}
-
-/// Parses a proc macro function from a `TokenStream2`
-pub fn parse_proc_macro<T: Into<TokenStream2>>(
-    tokens: T,
-    macro_type: ProcMacroType,
-) -> Result<ItemFn> {
-    let proc_fn = parse2::<ItemFn>(tokens.into())?;
-    let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
-    if proc_fn
-        .attrs
-        .iter()
-        .find(|attr| match macro_type {
-            ProcMacroType::Normal => {
-                syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok()
-            }
-            ProcMacroType::Attribute => {
-                syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream()).is_ok()
-            }
-            ProcMacroType::Derive => {
-                syn::parse2::<keywords::proc_macro_derive>(attr.path.to_token_stream()).is_ok()
-            }
-        })
-        .is_none()
-    {
-        return Err(Error::new(
-            proc_fn.sig.ident.span(),
-            "can only be attached to a function with #[proc_macro_attribute]",
-        ));
-    };
-    Ok(proc_fn)
 }
 
 /// Internal implementation for the `#[import_tokens_attr]` attribute.

@@ -126,6 +126,13 @@ pub struct ProcMacro {
     pub proc_fn: ItemFn,
     /// Specified the type of this proc macro, i.e. attribute vs normal vs derive
     pub macro_type: ProcMacroType,
+    /// Specifies the [`struct@Ident`] for the `tokens` parameter of this proc macro function
+    /// definition. For normal and derive macros this is the only parameter, and for attribute
+    /// macros this is the second parameter.
+    pub tokens_ident: Ident,
+    /// Specifies the [`struct@Ident`] for the `attr` parameter of this proc macro function
+    /// definition, if it is an attribute macro. Otherwise this will be set to [`None`].
+    pub attr_ident: Option<Ident>,
 }
 
 impl ProcMacro {
@@ -157,18 +164,43 @@ impl ProcMacro {
             ));
         };
         let macro_type = macro_type.unwrap();
+
+        // tokens_ident
+        let Some(FnArg::Typed(tokens_arg)) = proc_fn.sig.inputs.last() else {
+            unreachable!("missing tokens arg");
+        };
+        let Pat::Ident(tokens_ident) = *tokens_arg.pat.clone() else {
+            unreachable!("invalid tokens arg");
+        };
+        let tokens_ident = tokens_ident.ident;
+
+        // attr_ident (if applicable)
+        let attr_ident = match macro_type {
+            ProcMacroType::Attribute => {
+                let Some(FnArg::Typed(attr_arg)) = proc_fn.sig.inputs.first() else {
+                    unreachable!("missing attr arg");
+                };
+                let Pat::Ident(attr_ident) = *attr_arg.pat.clone() else {
+                    unreachable!("invalid attr arg");
+                };
+                Some(attr_ident.ident)
+            }
+            _ => None,
+        };
         Ok(ProcMacro {
             proc_fn,
             macro_type,
+            tokens_ident,
+            attr_ident,
         })
     }
 }
 
 /// Parses a proc macro function from a `TokenStream2` expecting only the specified `macro_type`
-pub fn parse_proc_macro<T: Into<TokenStream2>>(
+pub fn parse_proc_macro_variant<T: Into<TokenStream2>>(
     tokens: T,
     macro_type: ProcMacroType,
-) -> Result<ItemFn> {
+) -> Result<ProcMacro> {
     let proc_macro = ProcMacro::from(tokens.into())?;
     if proc_macro.macro_type != macro_type {
         let actual = proc_macro.macro_type.to_str();
@@ -181,7 +213,7 @@ pub fn parse_proc_macro<T: Into<TokenStream2>>(
             ),
         ));
     }
-    Ok(proc_macro.proc_fn)
+    Ok(proc_macro)
 }
 
 /// Convenience function that will pretty-print anything compatible with [`TokenStream2`]
@@ -468,12 +500,12 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     parse2::<Nothing>(attr.into())?;
-    let proc_fn = parse_proc_macro(tokens, ProcMacroType::Attribute)?;
+    let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
 
     // outer macro
-    let orig_sig = proc_fn.sig;
-    let orig_stmts = proc_fn.block.stmts;
-    let orig_attrs = proc_fn.attrs;
+    let orig_sig = proc_macro.proc_fn.sig;
+    let orig_stmts = proc_macro.proc_fn.block.stmts;
+    let orig_attrs = proc_macro.proc_fn.attrs;
 
     // inner macro
     let inner_macro_ident = format_ident!("__import_tokens_attr_{}_inner", orig_sig.ident);
@@ -481,21 +513,9 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     inner_sig.ident = inner_macro_ident.clone();
     inner_sig.inputs.pop().unwrap();
 
-    // source path
-    let Some(FnArg::Typed(first_arg)) = orig_sig.inputs.first() else {
-        unreachable!("missing first arg");
-    };
-    let Pat::Ident(first_arg_ident) = *first_arg.pat.clone() else {
-        unreachable!("invalid first arg");
-    };
-
-    // attached item tokens
-    let Some(FnArg::Typed(second_arg)) = orig_sig.inputs.last() else {
-        unreachable!("missing second arg");
-    };
-    let Pat::Ident(second_arg_ident) = *second_arg.pat.clone() else {
-        unreachable!("invalid second arg");
-    };
+    // params
+    let attr_ident = proc_macro.attr_ident.unwrap();
+    let tokens_ident = proc_macro.tokens_ident;
 
     let pound = Punct::new('#', Spacing::Alone);
     let mm_path = macro_magic_root();
@@ -507,9 +527,9 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         pub #orig_sig {
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
-            let attached_item = syn::parse_macro_input!(#second_arg_ident as syn::Item);
+            let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
-            let path = syn::parse_macro_input!(#first_arg_ident as syn::Path);
+            let path = syn::parse_macro_input!(#attr_ident as syn::Path);
             quote::quote! {
                 #mm_path::forward_tokens! {
                     #pound path,
@@ -522,10 +542,10 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         #[doc(hidden)]
         #[proc_macro]
         pub #inner_sig {
-            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#first_arg_ident as #mm_path::core::AttrItemWithExtra);
-            let (#first_arg_ident, #second_arg_ident) = (__combined_args.imported_item, __combined_args.extra);
-            let #first_arg_ident: proc_macro::TokenStream = #first_arg_ident.to_token_stream().into();
-            let #second_arg_ident: proc_macro::TokenStream = #second_arg_ident.value().parse().unwrap();
+            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::core::AttrItemWithExtra);
+            let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
+            let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
+            let #tokens_ident: proc_macro::TokenStream = #tokens_ident.value().parse().unwrap();
             #(#orig_stmts)
             *
         }
@@ -537,12 +557,12 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     parse2::<Nothing>(attr.into())?;
-    let proc_fn = parse_proc_macro(tokens, ProcMacroType::Normal)?;
+    let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Normal)?;
 
     // outer macro
-    let orig_sig = proc_fn.sig;
-    let orig_stmts = proc_fn.block.stmts;
-    let orig_attrs = proc_fn.attrs;
+    let orig_sig = proc_macro.proc_fn.sig;
+    let orig_stmts = proc_macro.proc_fn.block.stmts;
+    let orig_attrs = proc_macro.proc_fn.attrs;
 
     // inner macro
     let inner_macro_ident = format_ident!("__import_tokens_proc_{}_inner", orig_sig.ident);
@@ -550,13 +570,8 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     inner_sig.ident = inner_macro_ident.clone();
     inner_sig.inputs = inner_sig.inputs.iter().rev().cloned().collect();
 
-    // tokens arg
-    let Some(FnArg::Typed(second_arg)) = orig_sig.inputs.last() else {
-        unreachable!("missing second arg");
-    };
-    let Pat::Ident(second_arg_ident) = *second_arg.pat.clone() else {
-        unreachable!("invalid second arg");
-    };
+    // params
+    let tokens_ident = proc_macro.tokens_ident;
 
     let pound = Punct::new('#', Spacing::Alone);
     let mm_path = macro_magic_root();
@@ -567,7 +582,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         pub #orig_sig {
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
-            let source_path = match syn::parse::<syn::Path>(#second_arg_ident) {
+            let source_path = match syn::parse::<syn::Path>(#tokens_ident) {
                 Ok(path) => path,
                 Err(e) => return e.to_compile_error().into(),
             };

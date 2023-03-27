@@ -68,7 +68,7 @@ pub fn test_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-#[import_tokens_attr]
+#[import_tokens_attr(example_export::subpath)]
 #[proc_macro_attribute]
 pub fn test_tokens_attr1(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(attr as Item);
@@ -125,7 +125,7 @@ pub fn example_tokens_proc(tokens: TokenStream) -> TokenStream {
     quote!(#item_as_string).into()
 }
 
-#[import_tokens_proc]
+#[import_tokens_proc(example_export::subpath)]
 #[proc_macro]
 pub fn item_level_proc(tokens: TokenStream) -> TokenStream {
     let _imported_item = parse_macro_input!(tokens as Item);

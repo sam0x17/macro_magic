@@ -1,6 +1,12 @@
 use macro_magic::*;
 use test_macros::*;
 
+pub mod example_export {
+    pub mod subpath {
+        pub use ::macro_magic::*;
+    }
+}
+
 mod external_file;
 
 #[export_tokens]

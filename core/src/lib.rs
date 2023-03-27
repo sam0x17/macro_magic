@@ -5,20 +5,11 @@
 use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
-use proc_macro2::Punct;
-use proc_macro2::Spacing;
-use proc_macro2::Span;
-use proc_macro2::TokenStream as TokenStream2;
-use quote::format_ident;
-use quote::{quote, ToTokens};
-use syn::spanned::Spanned;
-use syn::Attribute;
-use syn::FnArg;
-use syn::LitStr;
-use syn::Pat;
+use proc_macro2::{Punct, Spacing, Span, TokenStream as TokenStream2};
+use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse::Nothing, parse2, parse_quote, token::Comma, Error, Ident, Item, ItemFn, Path, Result,
-    Token, Visibility,
+    parse::Nothing, parse2, parse_quote, spanned::Spanned, token::Comma, Attribute, Error, FnArg,
+    Ident, Item, ItemFn, LitStr, Pat, Path, Result, Token, Visibility,
 };
 
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
@@ -510,7 +501,11 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     attr: T1,
     tokens: T2,
 ) -> Result<TokenStream2> {
-    parse2::<Nothing>(attr.into())?;
+    let mm_override_path = match parse2::<Path>(attr.into()) {
+        Ok(override_path) => override_path,
+        Err(_) => macro_magic_root(),
+    };
+    let mm_path = macro_magic_root();
     let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
 
     // outer macro
@@ -529,7 +524,6 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let tokens_ident = proc_macro.tokens_ident;
 
     let pound = Punct::new('#', Spacing::Alone);
-    let mm_path = macro_magic_root();
 
     // final quoted tokens
     Ok(quote! {
@@ -542,7 +536,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let attached_item_str = attached_item.to_token_stream().to_string();
             let path = syn::parse_macro_input!(#attr_ident as syn::Path);
             quote::quote! {
-                #mm_path::forward_tokens! {
+                #mm_override_path::forward_tokens! {
                     #pound path,
                     #inner_macro_ident,
                     #pound attached_item_str
@@ -563,11 +557,19 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     })
 }
 
+/// Internal implementation for the `#[import_tokens_proc]` attribute.
+///
+/// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
+/// the `#[import_tokens_proc]` macro without extra indirection.
 pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,
 ) -> Result<TokenStream2> {
-    parse2::<Nothing>(attr.into())?;
+    let mm_override_path = match parse2::<Path>(attr.into()) {
+        Ok(override_path) => override_path,
+        Err(_) => macro_magic_root(),
+    };
+    let mm_path = macro_magic_root();
     let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Normal)?;
 
     // outer macro
@@ -585,7 +587,6 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let tokens_ident = proc_macro.tokens_ident;
 
     let pound = Punct::new('#', Spacing::Alone);
-    let mm_path = macro_magic_root();
 
     Ok(quote! {
         #(#orig_attrs)
@@ -598,7 +599,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 Err(e) => return e.to_compile_error().into(),
             };
             quote::quote! {
-                #mm_path::forward_tokens! {
+                #mm_override_path::forward_tokens! {
                     #pound source_path,
                     #inner_macro_ident
                 }

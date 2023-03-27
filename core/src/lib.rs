@@ -12,6 +12,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::format_ident;
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
+use syn::Attribute;
 use syn::FnArg;
 use syn::LitStr;
 use syn::Pat;
@@ -111,11 +112,21 @@ pub enum ProcMacroType {
 }
 
 impl ProcMacroType {
+    /// Gets the `&'static str` representation of this proc macro type
     pub fn to_str(&self) -> &'static str {
         match self {
             ProcMacroType::Normal => "#[proc_macro]",
             ProcMacroType::Attribute => "#[proc_macro_attribute]",
             ProcMacroType::Derive => "#[proc_macro_derive]",
+        }
+    }
+
+    /// Gets the [`Attribute`] representation of this proc macro type
+    pub fn to_attr(&self) -> Attribute {
+        match self {
+            ProcMacroType::Normal => parse_quote!(#[proc_macro]),
+            ProcMacroType::Attribute => parse_quote!(#[proc_macro_attribute]),
+            ProcMacroType::Derive => parse_quote!(#[proc_macro_derive]),
         }
     }
 }

@@ -224,7 +224,7 @@ across multiple macro invocations, however this problem can be tackled effective
 (deprecated but functional) [macro_state](https://crates.io/crates/macro_state) crate, which
 relies on some incidental features of the rust compiler that could be removed in the future.
 
-Note that the transition from 0.1.x6 to 0.2.0 of `macro_magic` removed and/or re-wrote a number
+Note that the transition from 0.1.7 to 0.2.0 of `macro_magic` removed and/or re-wrote a number
 of features that relied on a non-future-proof behavior of writing/reading files from the
 `OUT_DIR`. Versions of `macro_magic` >= 0.2.0 are completely future-proof and safe, however
 features that provided the ability to enumerate all the `#[export_tokens]` calls in a namespace

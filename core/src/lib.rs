@@ -91,6 +91,14 @@ pub struct ImportedTokens {
     pub item: Item,
 }
 
+#[derive(Parse)]
+pub struct BasicUseStmt {
+    pub vis: Visibility,
+    _use: Token![use],
+    pub path: Path,
+    _semi: Token![;],
+}
+
 /// Delineates the different types of proc macro
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum ProcMacroType {
@@ -615,6 +623,37 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     })
 }
 
+pub fn macro_magic_use_internal(
+    attr: TokenStream2,
+    tokens: TokenStream2,
+    mode: ProcMacroType,
+) -> Result<TokenStream2> {
+    parse2::<Nothing>(attr)?;
+    let orig_stmt = parse2::<BasicUseStmt>(tokens)?;
+    let orig_path = orig_stmt.path.clone();
+    let vis = orig_stmt.vis;
+    let flattened_ident = flatten_ident(
+        &orig_stmt
+            .path
+            .segments
+            .last()
+            .expect("path must have at least one segment")
+            .ident,
+    );
+    let hidden_ident = match mode {
+        ProcMacroType::Normal => format_ident!("__import_tokens_proc_{}_inner", flattened_ident),
+        ProcMacroType::Attribute => format_ident!("__import_tokens_attr_{}_inner", flattened_ident),
+        ProcMacroType::Derive => unimplemented!(),
+    };
+    let mut hidden_path: Path = orig_stmt.path.clone();
+    hidden_path.segments.last_mut().unwrap().ident = hidden_ident;
+    Ok(quote! {
+        #vis use #orig_path;
+        #[doc(hidden)]
+        #vis use hidden_path;
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -763,5 +802,41 @@ mod tests {
             }
         })
         .is_err());
+    }
+
+    #[test]
+    fn test_parse_use_stmt() {
+        assert!(macro_magic_use_internal(
+            quote!(),
+            quote!(
+                use some::path;
+            ),
+            ProcMacroType::Attribute,
+        )
+        .is_ok());
+        assert!(macro_magic_use_internal(
+            quote!(),
+            quote!(
+                use some::path
+            ),
+            ProcMacroType::Normal,
+        )
+        .is_err());
+        assert!(macro_magic_use_internal(
+            quote!(),
+            quote!(
+                use some::
+            ),
+            ProcMacroType::Attribute,
+        )
+        .is_err());
+        assert!(macro_magic_use_internal(
+            quote!(),
+            quote!(
+                pub use some::long::path;
+            ),
+            ProcMacroType::Attribute,
+        )
+        .is_ok());
     }
 }

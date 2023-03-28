@@ -115,7 +115,7 @@ Which would result in the following expanded output for `LocalStruct`:
 
 ```rust
 struct LocalStruct {
-        foo: u32,
+    foo: u32,
     bar: u64,
     fizz: i64,
     biz: bool,

@@ -1,5 +1,21 @@
 use macro_magic::*;
-use test_macros::*;
+
+use test_macros::{custom_export_tokens, include_impl, include_impl_inner, some_macro};
+
+#[use_attr]
+use test_macros::combine_structs;
+#[use_proc]
+use test_macros::example_tokens_proc;
+#[use_proc]
+use test_macros::item_level_proc;
+#[use_proc]
+use test_macros::require;
+#[use_attr]
+use test_macros::test_tokens_attr1;
+#[use_attr]
+use test_macros::test_tokens_attr2;
+#[use_attr]
+use test_macros::test_tokens_attr_direct_import;
 
 pub mod example_export {
     pub mod subpath {

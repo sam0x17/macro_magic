@@ -48,7 +48,7 @@ pub mod core {
 
 pub use macro_magic_macros::{
     export_tokens, export_tokens_alias, forward_tokens, import_tokens, import_tokens_attr,
-    import_tokens_proc,
+    import_tokens_proc, use_attr, use_proc,
 };
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support

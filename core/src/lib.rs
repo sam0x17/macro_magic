@@ -623,26 +623,24 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     })
 }
 
-pub fn macro_magic_use_internal(
-    attr: TokenStream2,
-    tokens: TokenStream2,
+pub fn use_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
+    attr: T1,
+    tokens: T2,
     mode: ProcMacroType,
 ) -> Result<TokenStream2> {
-    parse2::<Nothing>(attr)?;
-    let orig_stmt = parse2::<BasicUseStmt>(tokens)?;
+    parse2::<Nothing>(attr.into())?;
+    let orig_stmt = parse2::<BasicUseStmt>(tokens.into())?;
     let orig_path = orig_stmt.path.clone();
     let vis = orig_stmt.vis;
-    let flattened_ident = flatten_ident(
-        &orig_stmt
-            .path
-            .segments
-            .last()
-            .expect("path must have at least one segment")
-            .ident,
-    );
+    let ident = &orig_stmt
+        .path
+        .segments
+        .last()
+        .expect("path must have at least one segment")
+        .ident;
     let hidden_ident = match mode {
-        ProcMacroType::Normal => format_ident!("__import_tokens_proc_{}_inner", flattened_ident),
-        ProcMacroType::Attribute => format_ident!("__import_tokens_attr_{}_inner", flattened_ident),
+        ProcMacroType::Normal => format_ident!("__import_tokens_proc_{}_inner", ident),
+        ProcMacroType::Attribute => format_ident!("__import_tokens_attr_{}_inner", ident),
         ProcMacroType::Derive => unimplemented!(),
     };
     let mut hidden_path: Path = orig_stmt.path.clone();
@@ -650,7 +648,7 @@ pub fn macro_magic_use_internal(
     Ok(quote! {
         #vis use #orig_path;
         #[doc(hidden)]
-        #vis use hidden_path;
+        #vis use #hidden_path;
     })
 }
 
@@ -806,7 +804,7 @@ mod tests {
 
     #[test]
     fn test_parse_use_stmt() {
-        assert!(macro_magic_use_internal(
+        assert!(use_internal(
             quote!(),
             quote!(
                 use some::path;
@@ -814,7 +812,7 @@ mod tests {
             ProcMacroType::Attribute,
         )
         .is_ok());
-        assert!(macro_magic_use_internal(
+        assert!(use_internal(
             quote!(),
             quote!(
                 use some::path
@@ -822,7 +820,7 @@ mod tests {
             ProcMacroType::Normal,
         )
         .is_err());
-        assert!(macro_magic_use_internal(
+        assert!(use_internal(
             quote!(),
             quote!(
                 use some::
@@ -830,7 +828,7 @@ mod tests {
             ProcMacroType::Attribute,
         )
         .is_err());
-        assert!(macro_magic_use_internal(
+        assert!(use_internal(
             quote!(),
             quote!(
                 pub use some::long::path;

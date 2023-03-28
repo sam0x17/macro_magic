@@ -14,8 +14,10 @@ use test_macros::require;
 use test_macros::test_tokens_attr1;
 #[use_attr]
 use test_macros::test_tokens_attr2;
+
+/// Some doc comment
 #[use_attr]
-use test_macros::test_tokens_attr_direct_import;
+pub use test_macros::test_tokens_attr_direct_import;
 
 pub mod example_export {
     pub mod subpath {

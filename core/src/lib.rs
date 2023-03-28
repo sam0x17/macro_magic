@@ -93,6 +93,8 @@ pub struct ImportedTokens {
 
 #[derive(Parse)]
 pub struct BasicUseStmt {
+    #[call(Attribute::parse_outer)]
+    pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     _use: Token![use],
     pub path: Path,
@@ -631,6 +633,7 @@ pub fn use_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     parse2::<Nothing>(attr.into())?;
     let orig_stmt = parse2::<BasicUseStmt>(tokens.into())?;
     let orig_path = orig_stmt.path.clone();
+    let orig_attrs = orig_stmt.attrs;
     let vis = orig_stmt.vis;
     let ident = &orig_stmt
         .path
@@ -646,6 +649,8 @@ pub fn use_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     let mut hidden_path: Path = orig_stmt.path.clone();
     hidden_path.segments.last_mut().unwrap().ident = hidden_ident;
     Ok(quote! {
+        #(#orig_attrs)
+        *
         #vis use #orig_path;
         #[doc(hidden)]
         #vis use #hidden_path;

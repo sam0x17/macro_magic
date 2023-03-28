@@ -625,6 +625,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     })
 }
 
+/// Internal implementation for the `#[use_proc]` and `#[use_attr]` attribute macros
 pub fn use_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,

@@ -57,6 +57,21 @@ pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
     .into()
 }
 
+#[import_tokens_attr(middle_crate::export_mod::sub_mod::macro_magic)]
+#[proc_macro_attribute]
+pub fn distant_re_export_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item_str = imported_item.to_token_stream().to_string();
+    let attached_item_str = attached_item.to_token_stream().to_string();
+    quote! {
+        const DISTANT_ATTR_ATTACHED_ITEM: &'static str = #attached_item_str;
+        const DISTANT_ATTR_IMPORTED_ITEM: &'static str = #imported_item_str;
+        #attached_item
+    }
+    .into()
+}
+
 #[import_tokens_attr(example_export::subpath)]
 #[proc_macro_attribute]
 pub fn test_tokens_attr1(attr: TokenStream, tokens: TokenStream) -> TokenStream {

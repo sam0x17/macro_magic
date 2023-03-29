@@ -35,6 +35,9 @@ pub struct ForwardTokensArgs {
     pub target: Path,
     _comma2: Option<Comma>,
     #[parse_if(_comma2.is_some())]
+    pub mm_path: Option<Path>,
+    _comma3: Option<Comma>,
+    #[parse_if(_comma3.is_some())]
     /// Optional extra data that can be passed as a [`struct@LitStr`]. This is how
     /// [`import_tokens_attr_internal`] passes the item the attribute macro is attached to, but
     /// this can be repurposed for other things potentially as [`str`] could encode anything.
@@ -512,7 +515,10 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let mm_override_path = match parse2::<Path>(attr.into()) {
-        Ok(override_path) => override_path,
+        Ok(override_path) => {
+            println!("OVERRIDE: {}", override_path.to_token_stream().to_string());
+            override_path
+        }
         Err(_) => macro_magic_root(),
     };
     let mm_path = macro_magic_root();
@@ -550,6 +556,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 #mm_override_path::forward_tokens! {
                     #pound path,
                     #inner_macro_ident,
+                    #mm_override_path,
                     #pound extra
                 }
             }.into()
@@ -622,7 +629,8 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             quote::quote! {
                 #mm_override_path::forward_tokens! {
                     #pound source_path,
-                    #inner_macro_ident
+                    #inner_macro_ident,
+                    #mm_path
                 }
             }.into()
         }

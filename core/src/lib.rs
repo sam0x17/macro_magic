@@ -607,6 +607,8 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
 
     let pound = Punct::new('#', Spacing::Alone);
 
+    // TODO: add support for forwarding source_path for these as well
+
     Ok(quote! {
         #(#orig_attrs)
         *

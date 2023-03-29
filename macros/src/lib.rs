@@ -251,10 +251,10 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 ///
 /// Can only be used within a proc macro crate.
 ///
-/// A handy `__foreign_path: TokenStream` variable is also injected into your proc macro
+/// A handy `__source_path: TokenStream` variable is also injected into your proc macro
 /// function definition which provides access to the original [`syn::Path`] that was provided
 /// as the path for the foreign item before its tokens were imported. You can access this
-/// directly simply by referring to `__foreign_path`. This should parse to a [`syn::Path`].
+/// directly simply by referring to `__source_path`. This should parse to a [`syn::Path`].
 ///
 /// Note that you can provide a module path as an optional argument to this attribute macro and
 /// that path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code

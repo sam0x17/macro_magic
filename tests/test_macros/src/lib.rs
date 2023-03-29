@@ -127,7 +127,7 @@ pub fn item_level_proc(tokens: TokenStream) -> TokenStream {
 #[import_tokens_attr]
 #[proc_macro_attribute]
 pub fn emit_foreign_path(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let path = __foreign_path.to_string();
+    let path = __source_path.to_string();
     let foreign_item_str = attr.to_string();
     let item = parse_macro_input!(tokens as Item);
     quote! {

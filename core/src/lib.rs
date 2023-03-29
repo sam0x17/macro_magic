@@ -561,7 +561,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::core::AttrItemWithExtra);
             let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
-            let (#tokens_ident, __foreign_path) = {
+            let (#tokens_ident, __source_path) = {
                 let extra = #tokens_ident.value();
                 let index = extra.chars().position(|c| c == '|').expect("'extra' should be split by a '|' character");
                 let tokens_str = &extra[0..index];

@@ -460,6 +460,10 @@ pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<
 /// You shouldn't need to call this in any circumstances but it is provided just in case.
 pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let args = parse2::<ForwardTokensArgs>(tokens.into())?;
+    let mm_path = match args.mm_path {
+        Some(path) => path,
+        None => macro_magic_root(),
+    };
     let Some(source_ident_seg) = args.source.segments.last() else { unreachable!("must have at least one segment") };
     let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
     let source_path = if args.source.segments.len() > 1 {
@@ -471,12 +475,11 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
         quote!(#source_ident_seg)
     };
     let target_path = args.target;
-    let fwd_tokens_inner_path = private_path(&quote!(forward_tokens_inner));
     if let Some(extra) = args.extra {
         Ok(quote! {
             #source_path! {
                 #target_path,
-                #fwd_tokens_inner_path,
+                #mm_path::__private::forward_tokens_inner,
                 #extra
             }
         })
@@ -515,10 +518,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let mm_override_path = match parse2::<Path>(attr.into()) {
-        Ok(override_path) => {
-            println!("OVERRIDE: {}", override_path.to_token_stream().to_string());
-            override_path
-        }
+        Ok(override_path) => override_path,
         Err(_) => macro_magic_root(),
     };
     let mm_path = macro_magic_root();

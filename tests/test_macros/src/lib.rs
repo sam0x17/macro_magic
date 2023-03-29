@@ -126,6 +126,20 @@ pub fn item_level_proc(tokens: TokenStream) -> TokenStream {
 
 #[import_tokens_attr]
 #[proc_macro_attribute]
+pub fn emit_foreign_path(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let path = __foreign_path.to_string();
+    let foreign_item_str = attr.to_string();
+    let item = parse_macro_input!(tokens as Item);
+    quote! {
+        const foreign_item_str: &'static str = #foreign_item_str;
+        const emitted_path: &'static str = #path;
+        #item
+    }
+    .into()
+}
+
+#[import_tokens_attr]
+#[proc_macro_attribute]
 pub fn combine_structs(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let foreign_struct = parse_macro_input!(attr as ItemStruct);
     let local_struct = parse_macro_input!(tokens as ItemStruct);

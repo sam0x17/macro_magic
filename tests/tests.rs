@@ -4,6 +4,8 @@ use test_macros::{custom_export_tokens, include_impl, include_impl_inner, some_m
 
 #[use_attr]
 use test_macros::combine_structs;
+#[use_attr]
+use test_macros::emit_foreign_path;
 #[use_proc]
 use test_macros::example_tokens_proc;
 #[use_proc]
@@ -235,5 +237,17 @@ fn test_export_tokens_alias() {
     assert_eq!(
         tokens.to_string(),
         "struct Wombat { field1 : u32, field2 : u64, }"
+    );
+}
+
+#[emit_foreign_path(external_crate::an_external_function)]
+struct YetAnotherStruct {}
+
+#[test]
+fn test_foreign_path_emission() {
+    assert_eq!(emitted_path, "external_crate :: an_external_function");
+    assert_eq!(
+        foreign_item_str,
+        "fn an_external_function(my_num : u32) -> u32 { my_num + 33 }"
     );
 }

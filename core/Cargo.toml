@@ -1,6 +1,6 @@
 [package]
 name = "macro_magic_core"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 description = "Core implementation behind macro_magic"
 repository = "https://github.com/sam0x17/macro_magic"
@@ -14,4 +14,4 @@ prettyplease = "0.1"
 derive-syn-parse = "0.1.5"
 proc-macro2 = "1.0"
 convert_case = "0.6.0"
-macro_magic_core_macros = { version = "0.2.5", path = "../core_macros" }
+macro_magic_core_macros = { version = "0.2.6", path = "../core_macros" }

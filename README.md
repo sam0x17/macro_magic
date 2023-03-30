@@ -217,6 +217,15 @@ Notice that this hypothetical `require!` macro is dangerous for two reasons:
 
 These are just _some_ of the capabilities of `macro_magic` 🪄
 
+## Features
+
+### pretty_print
+
+The `pretty_print` feature, when enabled, adds a `pretty_print` function to
+`macro_magic::mm_core` which is capable of printing anything compatible with
+`Into<TokenStream2>` and is highly useful for debugging. This feature is not enabled by default
+since it relies on some things that can be problematic in `no_std` environments.
+
 ## Limitations
 
 One thing that `macro_magic` _doesn't_ provide is the ability to build up state information

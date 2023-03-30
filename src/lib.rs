@@ -25,6 +25,15 @@
 //! fact, there is a unit test to ensure everything is `no_std` safe). The main crate and all
 //! sub-crates are `no_std`.
 //!
+//! ## Features
+//!
+//! ### pretty_print
+//!
+//! The `pretty_print` feature, when enabled, adds a `pretty_print` function to [`mm_core`]
+//! which is capable of printing anything compatible with [`Into<TokenStream2>`] and is highly
+//! useful for debugging. This feature is not enabled by default since it relies on some things
+//! that can be problematic in `no_std` environments.
+//!
 //! ## Limitations
 //!
 //! One thing that `macro_magic` _doesn't_ provide is the ability to build up state information

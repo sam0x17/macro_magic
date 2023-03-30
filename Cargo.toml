@@ -34,3 +34,7 @@ test_macros = { path = "tests/test_macros" }
 external_crate = { path = "tests/external_crate" }
 middle_crate = { path = "tests/middle_crate" }
 isolated_crate = { path = "tests/isolated_crate" }
+
+[features]
+default = []
+pretty_print = ["macro_magic_core/pretty_print"]

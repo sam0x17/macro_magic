@@ -5,6 +5,8 @@
 #![no_std]
 extern crate alloc;
 use alloc::{format, string::ToString, vec::Vec};
+
+#[cfg(feature = "pretty_print")]
 use libc_print::libc_println as println;
 
 use convert_case::{Case, Casing};
@@ -239,7 +241,8 @@ pub fn parse_proc_macro_variant<T: Into<TokenStream2>>(
 /// Convenience function that will pretty-print anything compatible with [`TokenStream2`]
 /// including [`TokenStream2`], `TokenStream`, and all [`syn`] items.
 ///
-/// Uses the `prettyplease` crate.
+/// Uses the `prettyplease` crate. Only built if the `pretty_print` feature is enabled.
+#[cfg(feature = "pretty_print")]
 pub fn pretty_print<T: Into<TokenStream2> + Clone>(tokens: &T) {
     let tokens = (*tokens).clone();
     println!(

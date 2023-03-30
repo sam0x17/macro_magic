@@ -4,7 +4,11 @@
 
 #![no_std]
 extern crate alloc;
-use alloc::{format, string::ToString, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 #[cfg(feature = "pretty_print")]
 use libc_print::libc_println as println;
@@ -277,6 +281,48 @@ pub fn macro_magic_path<T: Into<TokenStream2> + Clone>(subpath: &T) -> Path {
     parse_quote! {
         #root::#subpath
     }
+}
+
+/// Returns the specified string in snake_case
+pub fn to_snake_case<T: Into<String> + From<String>>(input: T) -> T {
+    let input: String = input.into();
+    if input.len() == 0 {
+        return input.into();
+    }
+    let mut prev_lower = input.chars().next().unwrap().is_lowercase();
+    let mut prev_whitespace = true;
+    let mut first = true;
+    let mut output: Vec<char> = Vec::new();
+    for c in input.chars() {
+        if c == '_' {
+            prev_whitespace = true;
+            output.push('_');
+            continue;
+        }
+        if !c.is_ascii_alphanumeric() && c != '_' && !c.is_whitespace() {
+            continue;
+        }
+        if !first && c.is_whitespace() || c == '_' {
+            if !prev_whitespace {
+                output.push('_');
+            }
+            prev_whitespace = true;
+        } else {
+            let current_lower = c.is_lowercase();
+            if ((prev_lower != current_lower && prev_lower)
+                || (prev_lower == current_lower && !prev_lower))
+                && !first
+                && !prev_whitespace
+            {
+                output.push('_');
+            }
+            output.push(c.to_ascii_lowercase());
+            prev_lower = current_lower;
+            prev_whitespace = false;
+        }
+        first = false;
+    }
+    output.iter().collect::<String>().into()
 }
 
 /// "Flattens" an [`struct@Ident`] by converting it to snake case.
@@ -853,5 +899,35 @@ mod tests {
             ProcMacroType::Attribute,
         )
         .is_ok());
+    }
+
+    #[test]
+    fn test_snake_case() {
+        assert_eq!(
+            to_snake_case("ThisIsATriumph".to_string()),
+            "this_is_a_triumph"
+        );
+        assert_eq!(
+            to_snake_case("IAmMakingANoteHere".to_string()),
+            "i_am_making_a_note_here"
+        );
+        assert_eq!(to_snake_case("huge_success".to_string()), "huge_success");
+        assert_eq!(
+            to_snake_case("It's hard to   Overstate my satisfaction!!!".to_string()),
+            "its_hard_to_overstate_my_satisfaction"
+        );
+        assert_eq!(
+            to_snake_case("__aperature_science__".to_string()),
+            "__aperature_science__"
+        );
+        assert_eq!(
+            to_snake_case("WeDoWhatWeMustBecause!<We, Can>()".to_string()),
+            "we_do_what_we_must_because_we_can"
+        );
+        assert_eq!(
+            to_snake_case("For_The_Good_of_all_of_us_Except_TheOnes_Who Are Dead".to_string()),
+            "for_the_good_of_all_of_us_except_the_ones_who_are_dead"
+        );
+        assert_eq!(to_snake_case("".to_string()), "");
     }
 }

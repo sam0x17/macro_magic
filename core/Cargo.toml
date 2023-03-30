@@ -15,3 +15,4 @@ derive-syn-parse = "0.1.5"
 proc-macro2 = "1.0"
 convert_case = "0.6.0"
 macro_magic_core_macros = { version = "0.2.7", path = "../core_macros" }
+libc-print = "0.1.21"

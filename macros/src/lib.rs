@@ -1,3 +1,5 @@
+#![no_std]
+
 use macro_magic_core::*;
 use proc_macro::TokenStream;
 

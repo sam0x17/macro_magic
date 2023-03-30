@@ -2,6 +2,11 @@
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
 
+#![no_std]
+extern crate alloc;
+use alloc::{format, string::ToString, vec::Vec};
+use libc_print::libc_println as println;
+
 use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;

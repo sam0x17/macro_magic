@@ -40,6 +40,8 @@
 //! a namespace have been removed. The proper way to do this is with the outer macro pattern,
 //! mentioned above.
 
+#![no_std]
+
 /// Contains the internal code behind the `macro_magic` macros in a re-usable form, in case you
 /// need to design new macros that utilize some of the internal functionality of `macro_magic`.
 pub mod core {

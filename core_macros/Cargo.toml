@@ -1,6 +1,6 @@
 [package]
 name = "macro_magic_core_macros"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 description = "Support macros for macro_magic_core"
 repository = "https://github.com/sam0x17/macro_magic"

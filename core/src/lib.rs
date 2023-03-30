@@ -284,7 +284,7 @@ pub fn macro_magic_path<T: Into<TokenStream2> + Clone>(subpath: &T) -> Path {
 }
 
 /// Returns the specified string in snake_case
-pub fn to_snake_case<T: Into<String> + From<String>>(input: T) -> T {
+pub fn to_snake_case(input: impl Into<String>) -> String {
     let input: String = input.into();
     if input.len() == 0 {
         return input.into();
@@ -322,7 +322,7 @@ pub fn to_snake_case<T: Into<String> + From<String>>(input: T) -> T {
         }
         first = false;
     }
-    output.iter().collect::<String>().into()
+    output.iter().collect::<String>()
 }
 
 /// "Flattens" an [`struct@Ident`] by converting it to snake case.
@@ -903,25 +903,22 @@ mod tests {
 
     #[test]
     fn test_snake_case() {
+        assert_eq!(to_snake_case("ThisIsATriumph"), "this_is_a_triumph");
         assert_eq!(
-            to_snake_case("ThisIsATriumph".to_string()),
-            "this_is_a_triumph"
-        );
-        assert_eq!(
-            to_snake_case("IAmMakingANoteHere".to_string()),
+            to_snake_case("IAmMakingANoteHere"),
             "i_am_making_a_note_here"
         );
-        assert_eq!(to_snake_case("huge_success".to_string()), "huge_success");
+        assert_eq!(to_snake_case("huge_success"), "huge_success");
         assert_eq!(
-            to_snake_case("It's hard to   Overstate my satisfaction!!!".to_string()),
+            to_snake_case("It's hard to   Overstate my satisfaction!!!"),
             "its_hard_to_overstate_my_satisfaction"
         );
         assert_eq!(
-            to_snake_case("__aperature_science__".to_string()),
+            to_snake_case("__aperature_science__"),
             "__aperature_science__"
         );
         assert_eq!(
-            to_snake_case("WeDoWhatWeMustBecause!<We, Can>()".to_string()),
+            to_snake_case("WeDoWhatWeMustBecause!<We, Can>()"),
             "we_do_what_we_must_because_we_can"
         );
         assert_eq!(

@@ -338,37 +338,21 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let ident = export_tokens_macro_ident(&ident);
-    let fwd_tokens_inner_path = private_path(&quote!(forward_tokens_inner));
     let output = quote! {
-        // HACK: import `forward_tokens_inner` to facilitate below hack
         #[macro_export]
         macro_rules! #ident {
-            // arm used by attr
-            ($tokens_var:path, $callback:path, $extra:expr) => {
-                $callback! {
-                    $tokens_var,
+            // arm with extra support (used by attr)
+            ($(::)?$($tokens_var:ident)::*, $(::)?$($callback:ident)::*, $extra:expr) => {
+                $($callback)::*! {
+                    $($tokens_var)::*,
                     #item,
                     $extra
                 }
             };
-            // HACK: arm used to allow `forward_tokens` to be used in expr position
-            ($tokens_var:ident, __forward_tokens_inner) => {
-                #fwd_tokens_inner_path! {
-                    $tokens_var,
-                    #item
-                }
-            };
-            // HACK: extra arm for `import_tokens_same_mod_no_ident` (does not work in expr position)
-            ($tokens_var:path, __forward_tokens_inner) => {
-                #fwd_tokens_inner_path! {
-                    $tokens_var,
-                    #item
-                }
-            };
-            // regular arm used by `import_tokens` and others (does not work in expr position)
-            ($tokens_var:path, $callback:path) => {
-                $callback! {
-                    $tokens_var,
+            // regular arm (used by proc, import_tokens, etc)
+            ($(::)?$($tokens_var:ident)::*, $(::)?$($callback:ident)::*) => {
+                $($callback)::*! {
+                    $($tokens_var)::*,
                     #item
                 }
             };
@@ -485,7 +469,7 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
         })
     } else {
         Ok(quote! {
-            #source_path! { #target_path, __forward_tokens_inner }
+            #source_path! { #target_path, #mm_path::__private::forward_tokens_inner }
         })
     }
 }
@@ -630,7 +614,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 #mm_override_path::forward_tokens! {
                     #pound source_path,
                     #inner_macro_ident,
-                    #mm_path
+                    #mm_override_path
                 }
             }.into()
         }

@@ -10,4 +10,7 @@ struct ForeignItem {}
 #[macro_magic::use_attr]
 pub use test_macros::distant_re_export_attr;
 
-pub use macro_magic::use_attr;
+#[macro_magic::use_proc]
+pub use test_macros::distant_re_export_proc;
+
+pub use macro_magic::{use_attr, use_proc};

@@ -45,7 +45,7 @@
 
 /// Contains the internal code behind the `macro_magic` macros in a re-usable form, in case you
 /// need to design new macros that utilize some of the internal functionality of `macro_magic`.
-pub mod core {
+pub mod mm_core {
     pub use macro_magic_core::*;
 }
 

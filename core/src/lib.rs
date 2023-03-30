@@ -373,7 +373,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 /// macro that does the same thing as `#[export_tokens]`
 pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let alias = parse2::<Ident>(tokens.into())?;
-    let export_tokens_internal_path = macro_magic_path(&quote!(core::export_tokens_internal));
+    let export_tokens_internal_path = macro_magic_path(&quote!(mm_core::export_tokens_internal));
     Ok(quote! {
         #[proc_macro_attribute]
         pub fn #alias(attr: proc_macro::TokenStream, tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -554,7 +554,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         #[doc(hidden)]
         #[proc_macro]
         pub #inner_sig {
-            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::core::AttrItemWithExtra);
+            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::mm_core::AttrItemWithExtra);
             let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
             let (#tokens_ident, __source_path) = {

@@ -13,7 +13,6 @@ use alloc::{
 #[cfg(feature = "pretty_print")]
 use libc_print::libc_println as println;
 
-use convert_case::{Case, Casing};
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Punct, Spacing, Span, TokenStream as TokenStream2};
@@ -329,10 +328,7 @@ pub fn to_snake_case(input: impl Into<String>) -> String {
 ///
 /// Used by [`export_tokens_macro_ident`].
 pub fn flatten_ident(ident: &Ident) -> Ident {
-    Ident::new(
-        ident.to_string().to_case(Case::Snake).as_str(),
-        ident.span(),
-    )
+    Ident::new(to_snake_case(ident.to_string()).as_str(), ident.span())
 }
 
 /// Produces the full path for the auto-generated callback-based decl macro that allows us to

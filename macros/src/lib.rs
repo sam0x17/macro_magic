@@ -3,7 +3,7 @@
 use macro_magic_core::*;
 use proc_macro::TokenStream;
 
-/// Can be applied to any [`syn::Item`]-compatible item. Doing so will make the tokens for this
+/// Can be applied to any [`syn::Item`] compatible item. Doing so will make the tokens for this
 /// item available for import by the other macros in this crate.
 ///
 /// An optional argument can be provided specifying an override export name to use instead of

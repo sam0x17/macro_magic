@@ -1,6 +1,6 @@
 [package]
 name = "macro_magic_core"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2021"
 description = "Core implementation behind macro_magic"
 repository = "https://github.com/sam0x17/macro_magic"
@@ -12,7 +12,7 @@ quote = "1.0"
 syn = { version = "1.0", features = ["full"] }
 derive-syn-parse = "0.1.5"
 proc-macro2 = "1.0"
-macro_magic_core_macros = { version = "0.2.10", path = "../core_macros" }
+macro_magic_core_macros = { version = "0.2.11", path = "../core_macros" }
 prettyplease = { version = "0.1", optional = true }
 libc-print = { version  = "0.1", optional = true }
 

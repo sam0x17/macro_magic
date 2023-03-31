@@ -27,6 +27,19 @@
 //!
 //! ## Features
 //!
+//! ### proc_support
+//!
+//! The `proc_support` feature _must_ be enabled in proc macro crates that make use of any
+//! import tokens functionality, including [`#[import_tokens_attr]`](`import_tokens_attr`),
+//! [`#[import_tokens_proc]`](`import_tokens_proc`) and [`import_tokens!`]. Otherwise these
+//! macros will not function correctly and will issue compiler errors complaining about items
+//! not existing under [`mm_core`]. The [`#[export_tokens]`](`export_tokens`) macro does not
+//! require this feature to function correctly, so you can safely use it without enabling this
+//! feature.
+//!
+//! The reason for this feature gating is that things like [`syn`], [`quote`], `proc_macro2`,
+//! etc., are not 100% `no_std` compatible and should only be enabled in proc macro crates
+//!
 //! ### pretty_print
 //!
 //! The `pretty_print` feature, when enabled, adds a `pretty_print` function to [`mm_core`]

@@ -21,13 +21,11 @@ homepage = "https://sam0x17.dev"
 repository = "https://github.com/sam0x17/macro_magic"
 description = "Allows the exporting and importing of the tokens of items across module, file, and crate boundaries"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-syn = { version = "1.0", features = ["full"] }
-quote = "1.0"
 macro_magic_macros = { version = "0.2.10", path = "macros" }
-macro_magic_core = { version = "0.2.10", path = "core" }
+macro_magic_core = { version = "0.2.10", path = "core", optional = true }
+syn = { version = "1.0", features = ["full"], optional = true }
+quote = { version = "1.0", optional = true }
 
 [dev-dependencies]
 test_macros = { path = "tests/test_macros" }
@@ -37,4 +35,5 @@ isolated_crate = { path = "tests/isolated_crate" }
 
 [features]
 default = []
-pretty_print = ["macro_magic_core/pretty_print"]
+pretty_print = ["dep:macro_magic_core", "macro_magic_core?/pretty_print"]
+proc_support = ["dep:macro_magic_core", "dep:syn", "dep:quote"]

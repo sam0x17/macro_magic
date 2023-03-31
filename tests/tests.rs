@@ -1,6 +1,9 @@
 use macro_magic::*;
 
-use test_macros::{custom_export_tokens, include_impl, include_impl_inner, some_macro};
+use test_macros::{custom_export_tokens, include_impl, include_impl_inner};
+
+#[cfg(feature = "proc_support")]
+use test_macros::some_macro;
 
 #[use_attr]
 use test_macros::combine_structs;
@@ -132,6 +135,7 @@ fn test_forward_tokens() {
     assert_eq!(result, "struct LionStruct {}");
 }
 
+#[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_same_mod_no_ident() {
     some_macro!(SomeStruct);
@@ -139,12 +143,14 @@ fn import_tokens_same_mod_no_ident() {
     assert!(tokens.to_string().contains("field1"));
 }
 
+#[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_same_mod_ident() {
     import_tokens!(let tokens = charlie);
     assert!(tokens.to_string().contains("field2 : usize"));
 }
 
+#[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_different_mod_no_ident() {
     import_tokens!(let tokens = PlusPlus);
@@ -154,6 +160,7 @@ fn import_tokens_different_mod_no_ident() {
     );
 }
 
+#[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_different_mod_ident() {
     import_tokens!(let tokens = MinusMinus);

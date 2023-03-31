@@ -8,7 +8,7 @@ publish = false
 proc-macro = true
 
 [dependencies]
-macro_magic = { path = "../../" }
+macro_magic = { path = "../../", features = ["proc_support"] }
 syn = { version = "1.0", features = ["full"] }
 quote = "1.0"
 derive-syn-parse = "0.1.5"

@@ -55,12 +55,18 @@
 /// Contains the internal code behind the `macro_magic` macros in a re-usable form, in case you
 /// need to design new macros that utilize some of the internal functionality of `macro_magic`.
 pub mod mm_core {
+    #[cfg(feature = "proc_support")]
     pub use macro_magic_core::*;
+
+    #[cfg(feature = "pretty_print")]
+    pub use macro_magic_core::pretty_print;
 }
 
+pub use macro_magic_macros::{export_tokens, forward_tokens, use_attr, use_proc};
+
+#[cfg(feature = "proc_support")]
 pub use macro_magic_macros::{
-    export_tokens, export_tokens_alias, forward_tokens, import_tokens, import_tokens_attr,
-    import_tokens_proc, use_attr, use_proc,
+    export_tokens_alias, import_tokens, import_tokens_attr, import_tokens_proc,
 };
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support
@@ -68,7 +74,13 @@ pub use macro_magic_macros::{
 #[doc(hidden)]
 pub mod __private {
     pub use macro_magic_macros::*;
+
+    #[cfg(feature = "proc_support")]
     pub use quote;
+
+    #[cfg(feature = "proc_support")]
     pub use syn;
+
+    #[cfg(feature = "proc_support")]
     pub use syn::__private::TokenStream2;
 }

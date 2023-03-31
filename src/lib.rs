@@ -75,12 +75,12 @@ pub mod mm_core {
     pub use macro_magic_core::pretty_print;
 }
 
-pub use macro_magic_macros::{export_tokens, forward_tokens, use_attr, use_proc};
+pub use macro_magic_macros::{
+    export_tokens, export_tokens_alias, forward_tokens, use_attr, use_proc,
+};
 
 #[cfg(feature = "proc_support")]
-pub use macro_magic_macros::{
-    export_tokens_alias, import_tokens, import_tokens_attr, import_tokens_proc,
-};
+pub use macro_magic_macros::{import_tokens, import_tokens_attr, import_tokens_proc};
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support
 /// functions.

@@ -21,6 +21,9 @@ homepage = "https://sam0x17.dev"
 repository = "https://github.com/sam0x17/macro_magic"
 description = "Allows the exporting and importing of the tokens of items across module, file, and crate boundaries"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 macro_magic_macros = { version = "0.2.11", path = "macros" }
 macro_magic_core = { version = "0.2.11", path = "core", optional = true }

@@ -16,6 +16,6 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-quote = "1.0"
-syn = { version = "1.0", features = ["full"] }
+quote = "1"
+syn = { version = "2", features = ["full"] }
 macro_magic_core = { version = "0.2.12", path = "../core"}

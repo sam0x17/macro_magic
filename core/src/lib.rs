@@ -170,13 +170,16 @@ impl ProcMacro {
             .attrs
             .iter()
             .find(|attr| {
-                if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
+                if syn::parse2::<keywords::proc_macro>(attr.path().to_token_stream()).is_ok() {
                     macro_type = Some(ProcMacroType::Normal);
-                } else if syn::parse2::<keywords::proc_macro_attribute>(attr.path.to_token_stream())
-                    .is_ok()
+                } else if syn::parse2::<keywords::proc_macro_attribute>(
+                    attr.path().to_token_stream(),
+                )
+                .is_ok()
                 {
                     macro_type = Some(ProcMacroType::Attribute);
-                } else if syn::parse2::<keywords::proc_macro>(attr.path.to_token_stream()).is_ok() {
+                } else if syn::parse2::<keywords::proc_macro>(attr.path().to_token_stream()).is_ok()
+                {
                     macro_type = Some(ProcMacroType::Derive);
                 }
                 macro_type.is_some()
@@ -363,7 +366,6 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         Item::ExternCrate(item_extern_crate) => Some(item_extern_crate.ident),
         Item::Fn(item_fn) => Some(item_fn.sig.ident),
         Item::Macro(item_macro) => item_macro.ident, // note this one might not have an Ident as well
-        Item::Macro2(item_macro2) => Some(item_macro2.ident),
         Item::Mod(item_mod) => Some(item_mod.ident),
         Item::Static(item_static) => Some(item_static.ident),
         Item::Struct(item_struct) => Some(item_struct.ident),

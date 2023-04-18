@@ -1,5 +1,6 @@
 use macro_magic::*;
 
+use macro_magic_macros::export_tokens_no_emit;
 use test_macros::{custom_export_tokens, include_impl, include_impl_inner};
 
 #[cfg(feature = "proc_support")]
@@ -257,4 +258,25 @@ fn test_foreign_path_emission() {
         foreign_item_str,
         "fn an_external_function(my_num : u32) -> u32 { my_num + 33 }"
     );
+}
+
+#[export_tokens_no_emit]
+fn non_compiling_fn() {
+    compile_error!("this should not compile ");
+}
+
+// should not collide with above function since above function does not emit tokens locally and
+// so it does not exist locally
+fn non_compiling_fn() -> usize {
+    3
+}
+
+#[test]
+fn test_export_tokens_no_emit_exportation() {
+    import_tokens!(let tokens = non_compiling_fn);
+    assert_eq!(
+        tokens.to_string(),
+        "fn non_compiling_fn () { compile_error ! (\"this should not compile \") ; }"
+    );
+    assert_eq!(non_compiling_fn(), 3);
 }

@@ -357,6 +357,7 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     attr: T,
     tokens: E,
+    emit: bool,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
     let item: Item = parse2(tokens.into())?;
@@ -390,6 +391,13 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let ident = export_tokens_macro_ident(&ident);
+    let item_emit = match emit {
+        true => quote! {
+            #[allow(unused)]
+            #item
+        },
+        false => quote!(),
+    };
     let output = quote! {
         #[macro_export]
         macro_rules! #ident {
@@ -409,8 +417,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
                 }
             };
         }
-        #[allow(unused)]
-        #item
+        #item_emit
     };
     // pretty_print(&output);
     Ok(output)
@@ -418,13 +425,16 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 
 /// Internal implementation of `export_tokens_alias!`. Allows creating a renamed/rebranded
 /// macro that does the same thing as `#[export_tokens]`
-pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(
+    tokens: T,
+    emit: bool,
+) -> Result<TokenStream2> {
     let alias = parse2::<Ident>(tokens.into())?;
     let export_tokens_internal_path = macro_magic_path(&quote!(mm_core::export_tokens_internal));
     Ok(quote! {
         #[proc_macro_attribute]
         pub fn #alias(attr: proc_macro::TokenStream, tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            match #export_tokens_internal_path(attr, tokens) {
+            match #export_tokens_internal_path(attr, tokens, #emit) {
                 Ok(tokens) => tokens.into(),
                 Err(err) => err.to_compile_error().into(),
             }
@@ -719,7 +729,9 @@ mod tests {
 
     #[test]
     fn export_tokens_internal_missing_ident() {
-        assert!(export_tokens_internal(quote!(), quote!(impl MyTrait for Something)).is_err());
+        assert!(
+            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true).is_err()
+        );
     }
 
     #[test]
@@ -728,7 +740,8 @@ mod tests {
             quote!(),
             quote!(
                 struct MyStruct {}
-            )
+            ),
+            true
         )
         .unwrap()
         .to_string()
@@ -742,6 +755,7 @@ mod tests {
             quote!(
                 struct Something {}
             ),
+            true,
         )
         .unwrap()
         .to_string()
@@ -755,6 +769,7 @@ mod tests {
             quote!(
                 struct MyStruct<T> {}
             ),
+            true,
         )
         .unwrap()
         .to_string()
@@ -768,6 +783,7 @@ mod tests {
             quote!(
                 struct MyStruct {}
             ),
+            true,
         )
         .is_err());
         assert!(export_tokens_internal(
@@ -775,8 +791,23 @@ mod tests {
             quote!(
                 struct MyStruct {}
             ),
+            true,
         )
         .is_err());
+    }
+
+    #[test]
+    fn test_export_tokens_no_emit() {
+        assert!(export_tokens_internal(
+            quote!(some_name),
+            quote!(
+                struct Something {}
+            ),
+            false,
+        )
+        .unwrap()
+        .to_string()
+        .contains("some_name"));
     }
 
     #[test]

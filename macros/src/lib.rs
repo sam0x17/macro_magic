@@ -74,7 +74,20 @@ use proc_macro::TokenStream;
 /// ```
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match export_tokens_internal(attr, tokens) {
+    match export_tokens_internal(attr, tokens, true) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+/// Like [`#[export_tokens]`](`macro@export_tokens`) but does not emit the tokens of the
+/// attached item locally.
+///
+/// This is useful for scenarios where the local tokens would not compile anyway locally,
+/// and/or do not need to be used locally.
+#[proc_macro_attribute]
+pub fn export_tokens_no_emit(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    match export_tokens_internal(attr, tokens, false) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -89,7 +102,17 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// Can only be used within a proc macro crate.
 #[proc_macro]
 pub fn export_tokens_alias(tokens: TokenStream) -> TokenStream {
-    match export_tokens_alias_internal(tokens) {
+    match export_tokens_alias_internal(tokens, true) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+/// Like [`#[export_tokens]`](`macro@export_tokens`) but intead creates an alias for
+/// [`#[export_tokens_no_emit]`](`macro@export_tokens_no_emit`)
+#[proc_macro]
+pub fn export_tokens_alias_no_emit(tokens: TokenStream) -> TokenStream {
+    match export_tokens_alias_internal(tokens, false) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }

@@ -1,7 +1,10 @@
 use macro_magic::*;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Item, ItemMod, ItemStruct, Path};
+use syn::{
+    parse::Nothing, parse2, parse_macro_input, parse_quote, spanned::Spanned, token, Attribute,
+    Error, Expr, Fields, Ident, Item, ItemMod, ItemStruct, Path, Token,
+};
 
 /// An example proc macro built on top of `import_tokens_internal`.
 ///
@@ -68,6 +71,83 @@ pub fn distant_re_export_attr(attr: TokenStream, tokens: TokenStream) -> TokenSt
         const DISTANT_ATTR_ATTACHED_ITEM: &'static str = #attached_item_str;
         const DISTANT_ATTR_IMPORTED_ITEM: &'static str = #imported_item_str;
         #attached_item
+    }
+    .into()
+}
+
+fn get_item_attrs(item: &Item) -> Option<&Vec<Attribute>> {
+    match item {
+        Item::Const(item) => Some(&item.attrs),
+        Item::Enum(item) => Some(&item.attrs),
+        Item::ExternCrate(item) => Some(&item.attrs),
+        Item::Fn(item) => Some(&item.attrs),
+        Item::ForeignMod(item) => Some(&item.attrs),
+        Item::Impl(item) => Some(&item.attrs),
+        Item::Macro(item) => Some(&item.attrs),
+        Item::Mod(item) => Some(&item.attrs),
+        Item::Static(item) => Some(&item.attrs),
+        Item::Struct(item) => Some(&item.attrs),
+        Item::Trait(item) => Some(&item.attrs),
+        Item::TraitAlias(item) => Some(&item.attrs),
+        Item::Type(item) => Some(&item.attrs),
+        Item::Union(item) => Some(&item.attrs),
+        Item::Use(item) => Some(&item.attrs),
+        _ => None,
+    }
+}
+
+mod keyword {
+    use syn::custom_keyword;
+
+    custom_keyword!(pallet);
+}
+
+/// Parsing for `#[pallet::X]`
+#[derive(derive_syn_parse::Parse)]
+struct PalletAttr {
+    _pound: Token![#],
+    #[bracket]
+    _bracket: token::Bracket,
+    #[inside(_bracket)]
+    _pallet: keyword::pallet,
+    #[inside(_bracket)]
+    _sep: Token![::],
+    #[inside(_bracket)]
+    _expr: Expr,
+}
+
+fn has_pallet_attr(item: &Item) -> bool {
+    if let Some(attrs) = get_item_attrs(&item) {
+        for attr in attrs {
+            if parse2::<PalletAttr>(attr.to_token_stream()).is_ok() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[proc_macro_attribute]
+pub fn fake_pallet_section(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    parse_macro_input!(attr as Nothing);
+    let mut item_mod = parse_macro_input!(tokens as ItemMod);
+    let Some(content) = item_mod.content.as_mut() else { panic!("can't apply to non-local mod!") };
+    for item in &mut content.1 {
+        if has_pallet_attr(&item) {
+            *item = Item::Verbatim(parse_quote!());
+        }
+    }
+    quote!(#item_mod).into()
+}
+
+#[import_tokens_attr(middle_crate::export_mod::sub_mod::macro_magic)]
+#[proc_macro_attribute]
+pub fn verbatim_emit_both(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    quote::quote_spanned! { imported_item.span() =>
+        #attached_item
+        #imported_item
     }
     .into()
 }

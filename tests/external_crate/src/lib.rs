@@ -59,3 +59,8 @@ fn external_fn_with_local_macro_calls() -> u32 {
     another_macro!();
     1337
 }
+
+#[export_tokens_no_emit]
+struct ItemWithError {
+    field1: blah,
+}

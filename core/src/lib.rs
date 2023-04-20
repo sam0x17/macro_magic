@@ -16,7 +16,7 @@ use libc_print::libc_println as println;
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Punct, Spacing, Span, TokenStream as TokenStream2};
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::{
     parse::Nothing, parse2, parse_quote, spanned::Spanned, token::Comma, Attribute, Error, FnArg,
     Ident, Item, ItemFn, LitStr, Pat, Path, Result, Token, Visibility,
@@ -391,14 +391,15 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let ident = export_tokens_macro_ident(&ident);
+    let span = item.span();
     let item_emit = match emit {
-        true => quote! {
+        true => quote_spanned! { span =>
             #[allow(unused)]
             #item
         },
         false => quote!(),
     };
-    let output = quote! {
+    let output = quote_spanned! { span =>
         #[macro_export]
         macro_rules! #ident {
             // arm with extra support (used by attr)
@@ -548,7 +549,7 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
         },
         None => quote!(#imported_tokens),
     };
-    Ok(quote! {
+    Ok(quote_spanned! { imported_tokens.span() =>
         #target_path! {
             #combined_tokens
         }
@@ -598,6 +599,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let attached_item_str = attached_item.to_token_stream().to_string();
             let path = syn::parse_macro_input!(#attr_ident as syn::Path);
             let extra = format!("{}|{}", attached_item_str, path.to_token_stream().to_string());
+            // if we had the span here we'd be good
             quote::quote! {
                 #mm_override_path::forward_tokens! {
                     #pound path,

@@ -12,6 +12,7 @@ use test_macros::combine_structs;
 use test_macros::emit_foreign_path;
 #[use_proc]
 use test_macros::example_tokens_proc;
+use test_macros::fake_pallet_section;
 #[use_proc]
 use test_macros::item_level_proc;
 #[use_proc]
@@ -20,6 +21,8 @@ use test_macros::require;
 use test_macros::test_tokens_attr1;
 #[use_attr]
 use test_macros::test_tokens_attr2;
+#[use_attr]
+use test_macros::verbatim_emit_both;
 
 /// Some doc comment
 #[use_attr]
@@ -280,3 +283,16 @@ fn test_export_tokens_no_emit_exportation() {
     );
     assert_eq!(non_compiling_fn(), 3);
 }
+
+#[fake_pallet_section]
+mod pallet {
+
+    #[pallet::pallet]
+    #[pallet::storage_version(STORAGE_VERSION)]
+    pub struct Pallet<T, I = ()>(_);
+}
+
+// #[verbatim_emit_both(external_crate::ItemWithError)]
+// struct SomethingLocal {
+//     field: u32,
+// }

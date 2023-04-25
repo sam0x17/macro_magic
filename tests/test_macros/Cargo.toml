@@ -11,4 +11,5 @@ proc-macro = true
 macro_magic = { path = "../../", features = ["proc_support"] }
 syn = { version = "2", features = ["full"] }
 quote = "1"
+proc-macro2 = "1"
 derive-syn-parse = "0.1.5"

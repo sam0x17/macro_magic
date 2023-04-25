@@ -1,3 +1,4 @@
+use derive_syn_parse::Parse;
 use macro_magic::*;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
@@ -101,6 +102,42 @@ pub fn test_tokens_attr1(attr: TokenStream, tokens: TokenStream) -> TokenStream 
 #[import_tokens_attr]
 #[proc_macro_attribute]
 pub fn test_tokens_attr2(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item_str = imported_item.to_token_stream().to_string();
+    let attached_item_str = attached_item.to_token_stream().to_string();
+    assert_eq!(
+        imported_item_str,
+        "impl FooBarTrait for FooBarStruct\n{\n    fn foo(n : u32) -> u32 { n + 1 } \
+        fn bar(n : i32) -> i32 { n - 1 } fn\n    fizz(v : bool) -> bool { ! v }\n}"
+    );
+    assert_eq!(attached_item_str, "struct LocalItemStruct {}");
+    quote! {
+        #attached_item
+    }
+    .into()
+}
+
+#[derive(Parse)]
+struct CustomParsingA {
+    foreign_path: syn::Path,
+    _comma: syn::token::Comma,
+    custom_path: syn::Path,
+}
+
+impl ForeignPath for CustomParsingA {
+    fn foreign_path(&self) -> &syn::Path {
+        &self.foreign_path
+    }
+}
+
+#[with_custom_parsing(CustomParsingA)]
+#[import_tokens_attr]
+#[proc_macro_attribute]
+pub fn import_tokens_attr_with_custom_parsing_a(
+    attr: TokenStream,
+    tokens: TokenStream,
+) -> TokenStream {
     let imported_item = parse_macro_input!(attr as Item);
     let attached_item = parse_macro_input!(tokens as Item);
     let imported_item_str = imported_item.to_token_stream().to_string();

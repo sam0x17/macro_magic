@@ -555,6 +555,65 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     })
 }
 
+pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
+    attr: T1,
+    tokens: T2,
+    import_tokens_attr_name: &'static str,
+) -> Result<TokenStream2> {
+    // verify that we are attached to a valid #[import_tokens_attr] proc macro def
+    let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
+    if proc_macro
+        .proc_fn
+        .attrs
+        .iter()
+        .find(|attr| {
+            if let Some(seg) = attr.meta.path().segments.last() {
+                return seg.ident == import_tokens_attr_name;
+            }
+            false
+        })
+        .is_none()
+    {
+        return Err(Error::new(
+            Span::call_site(),
+            format!(
+                "Can only be attached to an attribute proc macro marked with `#[{}]`",
+                import_tokens_attr_name
+            ),
+        ));
+    }
+
+    // ensure there is only one `#[with_custom_parsing]`
+    if proc_macro
+        .proc_fn
+        .attrs
+        .iter()
+        .find(|attr| {
+            if let Some(seg) = attr.meta.path().segments.last() {
+                return seg.ident == "with_custom_parsing_internal";
+            }
+            false
+        })
+        .is_some()
+    {
+        return Err(Error::new(
+            Span::call_site(),
+            "Only one instance of #[with_custom_parsing] can be attached at a time.",
+        ));
+    }
+
+    // parse attr to ensure it is an ident
+    let ident = parse2::<Ident>(attr.into())?;
+
+    // emit original item unchanged now that parsing has passed
+    let mut item_fn = proc_macro.proc_fn;
+    item_fn
+        .attrs
+        .push(parse_quote!(#[with_custom_parsing(#ident)]));
+
+    Ok(quote!(#item_fn))
+}
+
 /// Internal implementation for the `#[import_tokens_attr]` attribute.
 ///
 /// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
@@ -568,7 +627,30 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         Err(_) => macro_magic_root(),
     };
     let mm_path = macro_magic_root();
-    let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
+    let mut proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
+
+    // params
+    let attr_ident = proc_macro.attr_ident.unwrap();
+    let tokens_ident = proc_macro.tokens_ident;
+
+    // handle custom parsing, if applicable
+    let path_resolver = if let Some(index) = proc_macro.proc_fn.attrs.iter().position(|attr| {
+        if let Some(seg) = attr.meta.path().segments.last() {
+            return seg.ident == "with_custom_parsing";
+        }
+        false
+    }) {
+        let custom_attr = &proc_macro.proc_fn.attrs[index];
+        let custom_ident: Ident = custom_attr.parse_args()?;
+
+        proc_macro.proc_fn.attrs.remove(index);
+        quote! {
+            let __custom_parsed = syn::parse_macro_input!(#attr_ident as #custom_ident);
+            let path = (&__custom_parsed as &dyn #mm_path::ForeignPath).foreign_path();
+        }
+    } else {
+        quote!(let path = syn::parse_macro_input!(#attr_ident as syn::Path);)
+    };
 
     // outer macro
     let orig_sig = proc_macro.proc_fn.sig;
@@ -581,10 +663,6 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     inner_sig.ident = inner_macro_ident.clone();
     inner_sig.inputs.pop().unwrap();
 
-    // params
-    let attr_ident = proc_macro.attr_ident.unwrap();
-    let tokens_ident = proc_macro.tokens_ident;
-
     let pound = Punct::new('#', Spacing::Alone);
 
     // final quoted tokens
@@ -596,7 +674,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             use #mm_path::__private::quote::ToTokens;
             let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
-            let path = syn::parse_macro_input!(#attr_ident as syn::Path);
+            #path_resolver
             let extra = format!("{}|{}", attached_item_str, path.to_token_stream().to_string());
             quote::quote! {
                 #mm_override_path::forward_tokens! {

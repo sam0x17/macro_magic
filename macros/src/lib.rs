@@ -292,6 +292,14 @@ pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream
     }
 }
 
+#[proc_macro_attribute]
+pub fn with_custom_parsing(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    match with_custom_parsing_internal(attr, tokens, "import_tokens_attr") {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
 /// Can be used to properly import and re-export attribute macros that were created using
 /// [`macro@import_tokens_attr`].
 ///

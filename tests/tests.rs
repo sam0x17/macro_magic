@@ -271,6 +271,7 @@ fn non_compiling_fn() -> usize {
     3
 }
 
+#[cfg(feature = "proc_support")]
 #[test]
 fn test_export_tokens_no_emit_exportation() {
     import_tokens!(let tokens = non_compiling_fn);

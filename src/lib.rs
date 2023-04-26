@@ -84,11 +84,6 @@ pub use macro_magic_macros::{
     import_tokens, import_tokens_attr, import_tokens_proc, with_custom_parsing,
 };
 
-#[cfg(feature = "proc_support")]
-pub trait ForeignPath {
-    fn foreign_path(&self) -> &syn::Path;
-}
-
 /// Contains re-exports required at compile-time by the macro_magic macros and support
 /// functions.
 #[doc(hidden)]

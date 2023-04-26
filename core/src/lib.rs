@@ -147,6 +147,37 @@ impl ProcMacroType {
     }
 }
 
+/// Should be implemented by structs that will be passed to `#[with_custom_parsing(..)]`. Such
+/// structs should also implement [`syn::parse::Parse`].
+///
+/// ## Example
+///
+/// ```ignore
+/// #[derive(derive_syn_parse::Parse)]
+/// struct CustomParsingA {
+///     foreign_path: syn::Path,
+///     _comma: syn::token::Comma,
+///     custom_path: syn::Path,
+/// }
+///
+/// impl ToTokens for CustomParsingA {
+///     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+///         tokens.extend(self.foreign_path.to_token_stream());
+///         tokens.extend(self._comma.to_token_stream());
+///         tokens.extend(self.custom_path.to_token_stream());
+///     }
+/// }
+///
+/// impl ForeignPath for CustomParsingA {
+///     fn foreign_path(&self) -> &syn::Path {
+///         &self.foreign_path
+///     }
+/// }
+/// ```
+pub trait ForeignPath {
+    fn foreign_path(&self) -> &syn::Path;
+}
+
 #[derive(Clone)]
 pub struct ProcMacro {
     /// The underlying proc macro function definition
@@ -329,6 +360,10 @@ pub fn to_snake_case(input: impl Into<String>) -> String {
     output.iter().collect::<String>()
 }
 
+/// Converts a string-like value (via [`Display`]) such that the sequence `~~` is safely escaped
+/// so that `~~` can be used as a list delimiter.
+///
+/// Used by [`forward_tokens_internal`] to escape items appearing in the `extra` variable.
 pub fn escape_extra<T: Display>(extra: T) -> String {
     extra
         .to_string()
@@ -336,6 +371,9 @@ pub fn escape_extra<T: Display>(extra: T) -> String {
         .replace("~~", "\\~\\~")
 }
 
+/// Unescapes a `String` that has been escaped via [`escape_extra`].
+///
+/// Used by [`forward_tokens_internal`] to unescape items appearing in the `extra` variable.
 pub fn unescape_extra<T: Display>(extra: T) -> String {
     extra
         .to_string()
@@ -571,6 +609,18 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     })
 }
 
+/// The internal implementation for the `#[with_custom_parsing(..)` attribute macro.
+///
+/// Note that this implementation just does parsing and re-orders the attributes of the
+/// attached proc macro attribute definition such that the `#[import_tokens_attr]` attribute
+/// comes before this attribute. The real implementation for `#[with_custom_parsing(..)]` can
+/// be found in [`import_tokens_attr_internal`]. The purpose of this is to allow programmers to
+/// use either ordering and still have the proper compiler errors when something is invalid.
+///
+/// The `import_tokens_att_name` argument is used when generating error messages and matching
+/// against the `#[import_tokens_attr]` macro this is to be used with. If you use a
+/// renamed/rebranded version of `#[import_tokens_attr]`, you should change this value to match
+/// the name of your macro.
 pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,
@@ -618,14 +668,14 @@ pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream
         ));
     }
 
-    // parse attr to ensure it is an ident
-    let ident = parse2::<Ident>(attr.into())?;
+    // parse attr to ensure it is a Path
+    let custom_path = parse2::<Path>(attr.into())?;
 
     // emit original item unchanged now that parsing has passed
     let mut item_fn = proc_macro.proc_fn;
     item_fn
         .attrs
-        .push(parse_quote!(#[with_custom_parsing(#ident)]));
+        .push(parse_quote!(#[with_custom_parsing(#custom_path)]));
 
     Ok(quote!(#item_fn))
 }
@@ -657,12 +707,12 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         false
     }) {
         let custom_attr = &proc_macro.proc_fn.attrs[index];
-        let custom_ident: Ident = custom_attr.parse_args()?;
+        let custom_struct_path: Path = custom_attr.parse_args()?;
 
         proc_macro.proc_fn.attrs.remove(index);
         quote! {
-            let custom_parsed = syn::parse_macro_input!(#attr_ident as #custom_ident);
-            let path = (&custom_parsed as &dyn #mm_path::ForeignPath).foreign_path();
+            let custom_parsed = syn::parse_macro_input!(#attr_ident as #custom_struct_path);
+            let path = (&custom_parsed as &dyn ForeignPath).foreign_path();
             let _ = (&custom_parsed as &dyn quote::ToTokens);
         }
     } else {
@@ -692,7 +742,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         pub #orig_sig {
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
-            use #mm_path::mm_core::escape_extra;
+            use #mm_path::mm_core::*;
             let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
             #path_resolver
@@ -718,7 +768,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::mm_core::AttrItemWithExtra);
             let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
-            let (#tokens_ident, __source_path, __custom_parsed) = {
+            let (#tokens_ident, __source_path, __custom_tokens) = {
                 use #mm_path::mm_core::unescape_extra;
                 let extra = #tokens_ident.value();
                 let mut extra_split = extra.split("~~");

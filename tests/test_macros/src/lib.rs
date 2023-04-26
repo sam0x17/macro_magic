@@ -1,5 +1,5 @@
 use derive_syn_parse::Parse;
-use macro_magic::*;
+use macro_magic::{mm_core::ForeignPath, *};
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Item, ItemMod, ItemStruct, Path};
@@ -150,7 +150,7 @@ pub fn import_tokens_attr_with_custom_parsing_a(
     let attached_item = parse_macro_input!(tokens as Item);
     let imported_item_str = imported_item.to_token_stream().to_string();
     let attached_item_str = attached_item.to_token_stream().to_string();
-    let custom_path_str = __custom_parsed.to_string();
+    let custom_path_str = __custom_tokens.to_string();
     assert_eq!(
         imported_item_str,
         "struct CustomParsingStructForeign { field : bool, }"
@@ -162,6 +162,37 @@ pub fn import_tokens_attr_with_custom_parsing_a(
     assert_eq!(
         attached_item_str,
         "struct CustomParsingStructLocal { field : u32, }"
+    );
+    quote! {
+        #attached_item
+    }
+    .into()
+}
+
+/// we do this one to check that both orderings work
+#[import_tokens_attr]
+#[with_custom_parsing(CustomParsingA)]
+#[proc_macro_attribute]
+pub fn import_tokens_attr_with_custom_parsing_b(
+    attr: TokenStream,
+    tokens: TokenStream,
+) -> TokenStream {
+    let imported_item = parse_macro_input!(attr as Item);
+    let attached_item = parse_macro_input!(tokens as Item);
+    let imported_item_str = imported_item.to_token_stream().to_string();
+    let attached_item_str = attached_item.to_token_stream().to_string();
+    let custom_path_str = __custom_tokens.to_string();
+    assert_eq!(
+        imported_item_str,
+        "struct CustomParsingStructForeign { field : bool, }"
+    );
+    assert_eq!(
+        custom_path_str,
+        "CustomParsingStructForeign, some :: cool :: path"
+    );
+    assert_eq!(
+        attached_item_str,
+        "struct CustomParsingStructLocal2 { field : u32, }"
     );
     quote! {
         #attached_item

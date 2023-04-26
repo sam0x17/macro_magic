@@ -14,6 +14,8 @@ use test_macros::emit_foreign_path;
 use test_macros::example_tokens_proc;
 #[use_attr]
 use test_macros::import_tokens_attr_with_custom_parsing_a;
+#[use_attr]
+use test_macros::import_tokens_attr_with_custom_parsing_b;
 #[use_proc]
 use test_macros::item_level_proc;
 #[use_proc]
@@ -34,6 +36,11 @@ struct CustomParsingStructForeign {
 
 #[import_tokens_attr_with_custom_parsing_a(CustomParsingStructForeign, some::cool::path)]
 struct CustomParsingStructLocal {
+    field: u32,
+}
+
+#[import_tokens_attr_with_custom_parsing_b(CustomParsingStructForeign, some::cool::path)]
+struct CustomParsingStructLocal2 {
     field: u32,
 }
 

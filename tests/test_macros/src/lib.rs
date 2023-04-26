@@ -125,6 +125,14 @@ struct CustomParsingA {
     custom_path: syn::Path,
 }
 
+impl ToTokens for CustomParsingA {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(self.foreign_path.to_token_stream());
+        tokens.extend(self._comma.to_token_stream());
+        tokens.extend(self.custom_path.to_token_stream());
+    }
+}
+
 impl ForeignPath for CustomParsingA {
     fn foreign_path(&self) -> &syn::Path {
         &self.foreign_path
@@ -142,12 +150,19 @@ pub fn import_tokens_attr_with_custom_parsing_a(
     let attached_item = parse_macro_input!(tokens as Item);
     let imported_item_str = imported_item.to_token_stream().to_string();
     let attached_item_str = attached_item.to_token_stream().to_string();
+    let custom_path_str = __custom_parsed.to_string();
     assert_eq!(
         imported_item_str,
-        "impl FooBarTrait for FooBarStruct\n{\n    fn foo(n : u32) -> u32 { n + 1 } \
-        fn bar(n : i32) -> i32 { n - 1 } fn\n    fizz(v : bool) -> bool { ! v }\n}"
+        "struct CustomParsingStructForeign { field : bool, }"
     );
-    assert_eq!(attached_item_str, "struct LocalItemStruct {}");
+    assert_eq!(
+        custom_path_str,
+        "CustomParsingStructForeign, some :: cool :: path"
+    );
+    assert_eq!(
+        attached_item_str,
+        "struct CustomParsingStructLocal { field : u32, }"
+    );
     quote! {
         #attached_item
     }

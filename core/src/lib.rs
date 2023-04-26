@@ -4,6 +4,8 @@
 
 #![no_std]
 extern crate alloc;
+use core::fmt::Display;
+
 use alloc::{
     format,
     string::{String, ToString},
@@ -327,6 +329,20 @@ pub fn to_snake_case(input: impl Into<String>) -> String {
     output.iter().collect::<String>()
 }
 
+pub fn escape_extra<T: Display>(extra: T) -> String {
+    extra
+        .to_string()
+        .replace("\\", "\\\\")
+        .replace("~~", "\\~\\~")
+}
+
+pub fn unescape_extra<T: Display>(extra: T) -> String {
+    extra
+        .to_string()
+        .replace("\\\\", "\\")
+        .replace("\\~\\~", "~~")
+}
+
 /// "Flattens" an [`struct@Ident`] by converting it to snake case.
 ///
 /// Used by [`export_tokens_macro_ident`].
@@ -645,11 +661,15 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
 
         proc_macro.proc_fn.attrs.remove(index);
         quote! {
-            let __custom_parsed = syn::parse_macro_input!(#attr_ident as #custom_ident);
-            let path = (&__custom_parsed as &dyn #mm_path::ForeignPath).foreign_path();
+            let custom_parsed = syn::parse_macro_input!(#attr_ident as #custom_ident);
+            let path = (&custom_parsed as &dyn #mm_path::ForeignPath).foreign_path();
+            let _ = (&custom_parsed as &dyn quote::ToTokens);
         }
     } else {
-        quote!(let path = syn::parse_macro_input!(#attr_ident as syn::Path);)
+        quote! {
+            let custom_parsed = quote::quote!();
+            let path = syn::parse_macro_input!(#attr_ident as syn::Path);
+        }
     };
 
     // outer macro
@@ -672,10 +692,16 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         pub #orig_sig {
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
+            use #mm_path::mm_core::escape_extra;
             let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
             let attached_item_str = attached_item.to_token_stream().to_string();
             #path_resolver
-            let extra = format!("{}|{}", attached_item_str, path.to_token_stream().to_string());
+            let extra = format!(
+                "{}~~{}~~{}",
+                escape_extra(attached_item_str),
+                escape_extra(path.to_token_stream().to_string().as_str()),
+                escape_extra(custom_parsed.to_token_stream().to_string().as_str())
+            );
             quote::quote! {
                 #mm_override_path::forward_tokens! {
                     #pound path,
@@ -692,14 +718,19 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
             let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::mm_core::AttrItemWithExtra);
             let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
             let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
-            let (#tokens_ident, __source_path) = {
+            let (#tokens_ident, __source_path, __custom_parsed) = {
+                use #mm_path::mm_core::unescape_extra;
                 let extra = #tokens_ident.value();
-                let index = extra.chars().position(|c| c == '|').expect("'extra' should be split by a '|' character");
-                let tokens_str = &extra[0..index];
-                let foreign_path_str = &extra[(index + 1)..];
-                let foreign_path: proc_macro::TokenStream = foreign_path_str.parse().unwrap();
-                let tokens: proc_macro::TokenStream = tokens_str.parse().unwrap();
-                (tokens, foreign_path)
+                let mut extra_split = extra.split("~~");
+                let (tokens_string, foreign_path_string, custom_parsed_string) = (
+                    unescape_extra(extra_split.next().unwrap()),
+                    unescape_extra(extra_split.next().unwrap()),
+                    unescape_extra(extra_split.next().unwrap()),
+                );
+                let foreign_path: proc_macro::TokenStream = foreign_path_string.as_str().parse().unwrap();
+                let tokens: proc_macro::TokenStream = tokens_string.as_str().parse().unwrap();
+                let custom_parsed_tokens: proc_macro::TokenStream = custom_parsed_string.as_str().parse().unwrap();
+                (tokens, foreign_path, custom_parsed_tokens)
             };
             #(#orig_stmts)
             *

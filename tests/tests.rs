@@ -12,6 +12,8 @@ use test_macros::combine_structs;
 use test_macros::emit_foreign_path;
 #[use_proc]
 use test_macros::example_tokens_proc;
+#[use_attr]
+use test_macros::import_tokens_attr_with_custom_parsing_a;
 #[use_proc]
 use test_macros::item_level_proc;
 #[use_proc]
@@ -24,6 +26,16 @@ use test_macros::test_tokens_attr2;
 /// Some doc comment
 #[use_attr]
 pub use test_macros::test_tokens_attr_direct_import;
+
+#[export_tokens]
+struct CustomParsingStructForeign {
+    field: bool,
+}
+
+#[import_tokens_attr_with_custom_parsing_a(CustomParsingStructForeign, some::cool::path)]
+struct CustomParsingStructLocal {
+    field: u32,
+}
 
 pub mod example_export {
     pub mod subpath {
@@ -261,23 +273,23 @@ fn test_foreign_path_emission() {
 }
 
 #[export_tokens_no_emit]
-fn non_compiling_fn() {
+fn _non_compiling_fn() {
     compile_error!("this should not compile ");
 }
 
 // should not collide with above function since above function does not emit tokens locally and
 // so it does not exist locally
-fn non_compiling_fn() -> usize {
+fn _non_compiling_fn() -> usize {
     3
 }
 
 #[cfg(feature = "proc_support")]
 #[test]
 fn test_export_tokens_no_emit_exportation() {
-    import_tokens!(let tokens = non_compiling_fn);
+    import_tokens!(let tokens = _non_compiling_fn);
     assert_eq!(
         tokens.to_string(),
-        "fn non_compiling_fn () { compile_error ! (\"this should not compile \") ; }"
+        "fn _non_compiling_fn () { compile_error ! (\"this should not compile \") ; }"
     );
-    assert_eq!(non_compiling_fn(), 3);
+    assert_eq!(_non_compiling_fn(), 3);
 }

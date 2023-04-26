@@ -215,7 +215,8 @@ Notice that this hypothetical `require!` macro is dangerous for two reasons:
 - If existing items in the module or context where you use the `require!` macro conflict with
   something you are importing, you will get a compiler error (this is good, though).
 
-These are just _some_ of the capabilities of `macro_magic` 🪄
+These are just _some_ of the capabilities of `macro_magic` 🪄. See the
+[`docs`](https://docs.rs/macro_magic/latest/macro_magic/) for more information.
 
 ## Features
 

@@ -453,6 +453,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         false => quote!(),
     };
     let output = quote! {
+        #[doc(hidden)]
         #[macro_export]
         macro_rules! #ident {
             // arm with extra support (used by attr)

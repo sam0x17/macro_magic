@@ -2,7 +2,7 @@ use derive_syn_parse::Parse;
 use macro_magic::{mm_core::ForeignPath, *};
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Item, ItemMod, ItemStruct, Path};
+use syn::{parse_macro_input, spanned::Spanned, Error, Fields, Ident, Item, ItemMod, ItemStruct, Path};
 
 /// An example proc macro built on top of `import_tokens_internal`.
 ///
@@ -43,14 +43,24 @@ pub fn some_macro(tokens: TokenStream) -> TokenStream {
     .into()
 }
 
+#[derive(Parse)]
+struct SomeOtherMacroArgs{
+    forwarded_ident: Ident,
+    item: Item,
+}
+
 #[proc_macro]
 pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
-    // println!("tokens: {}", tokens.to_string());
-    let item = parse_macro_input!(tokens as Item);
+    let args = parse_macro_input!(tokens as SomeOtherMacroArgs);
     assert_eq!(
-        item.to_token_stream().to_string(),
+        args.forwarded_ident.to_token_stream().to_string(),
+        "__private_macro_magic_tokens_forwarded",
+    );
+    assert_eq!(
+        args.item.to_token_stream().to_string(),
         "struct SomeStruct { field1 : u32, field2 : bool, }"
     );
+    let item = args.item;
     quote! {
         #[allow(unused)]
         #item

@@ -6,27 +6,17 @@ use test_macros::{custom_export_tokens, include_impl, include_impl_inner};
 #[cfg(feature = "proc_support")]
 use test_macros::some_macro;
 
-#[use_attr]
 use test_macros::combine_structs;
-#[use_attr]
 use test_macros::emit_foreign_path;
-#[use_proc]
 use test_macros::example_tokens_proc;
-#[use_attr]
 use test_macros::import_tokens_attr_with_custom_parsing_a;
-#[use_attr]
 use test_macros::import_tokens_attr_with_custom_parsing_b;
-#[use_proc]
 use test_macros::item_level_proc;
-#[use_proc]
 use test_macros::require;
-#[use_attr]
 use test_macros::test_tokens_attr1;
-#[use_attr]
 use test_macros::test_tokens_attr2;
 
 /// Some doc comment
-#[use_attr]
 pub use test_macros::test_tokens_attr_direct_import;
 
 #[export_tokens]
@@ -146,7 +136,7 @@ fn attr_direct_import() {
 fn test_forward_tokens() {
     #[macro_export]
     macro_rules! receiver {
-        ($tokens:item) => {
+        (__private_macro_magic_tokens_forwarded $tokens:item) => {
             stringify!($tokens)
         };
     }

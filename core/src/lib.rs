@@ -616,7 +616,7 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
                 #tokens_forwarded_keyword
                 #imported_tokens
             }
-        })
+        }),
     }
 }
 

@@ -378,14 +378,18 @@ pub fn with_custom_parsing(attr: TokenStream, tokens: TokenStream) -> TokenStrea
 }
 
 /// Deprecated: No-op
-#[deprecated(note = "`use_attr` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely")]
+#[deprecated(
+    note = "`use_attr` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely"
+)]
 #[proc_macro_attribute]
 pub fn use_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     tokens
 }
 
 /// Deprecated: No-op
-#[deprecated(note = "`use_proc` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely")]
+#[deprecated(
+    note = "`use_proc` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely"
+)]
 #[proc_macro_attribute]
 pub fn use_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     tokens

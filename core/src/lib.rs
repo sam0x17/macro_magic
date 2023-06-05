@@ -602,7 +602,7 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     let tokens_forwarded_keyword = keywords::__private_macro_magic_tokens_forwarded::default();
     let pound = Punct::new('#', Spacing::Alone);
     match parsed.extra {
-        // no extra, used by attr, so expand to attribute macro
+        // some extra, used by attr, so expand to attribute macro
         Some(extra) => Ok(quote! {
             #pound [#target_path(
                 #tokens_forwarded_keyword

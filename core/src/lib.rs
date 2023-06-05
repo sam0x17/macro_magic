@@ -689,9 +689,11 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     attr: T1,
     tokens: T2,
 ) -> Result<TokenStream2> {
-    let mm_override_path = match parse2::<Path>(attr.into()) {
-        Ok(override_path) => override_path,
-        Err(_) => macro_magic_root(),
+    let attr = attr.into();
+    let mm_override_path = if attr.is_empty() {
+        macro_magic_root()
+    } else {
+        parse2::<Path>(attr)?
     };
     let mm_path = macro_magic_root();
     let mut proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
@@ -797,9 +799,11 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     attr: T1,
     tokens: T2,
 ) -> Result<TokenStream2> {
-    let mm_override_path = match parse2::<Path>(attr.into()) {
-        Ok(override_path) => override_path,
-        Err(_) => macro_magic_root(),
+    let attr = attr.into();
+    let mm_override_path = if attr.is_empty() {
+        macro_magic_root()
+    } else {
+        parse2::<Path>(attr)?
     };
     let mm_path = macro_magic_root();
     let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Normal)?;

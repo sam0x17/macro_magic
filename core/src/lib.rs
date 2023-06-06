@@ -4,7 +4,6 @@
 
 #![no_std]
 extern crate alloc;
-use core::fmt::Display;
 
 use alloc::{
     format,
@@ -376,27 +375,6 @@ pub fn to_snake_case(input: impl Into<String>) -> String {
         first = false;
     }
     output.iter().collect::<String>()
-}
-
-/// Converts a string-like value (via [`Display`]) such that the sequence `~~` is safely escaped
-/// so that `~~` can be used as a list delimiter.
-///
-/// Used by [`forward_tokens_internal`] to escape items appearing in the `extra` variable.
-pub fn escape_extra<T: Display>(extra: T) -> String {
-    extra
-        .to_string()
-        .replace("\\", "\\\\")
-        .replace("~~", "\\~\\~")
-}
-
-/// Unescapes a `String` that has been escaped via [`escape_extra`].
-///
-/// Used by [`forward_tokens_internal`] to unescape items appearing in the `extra` variable.
-pub fn unescape_extra<T: Display>(extra: T) -> String {
-    extra
-        .to_string()
-        .replace("\\\\", "\\")
-        .replace("\\~\\~", "~~")
 }
 
 /// "Flattens" an [`struct@Ident`] by converting it to snake case.

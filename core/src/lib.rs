@@ -33,6 +33,9 @@ mod keywords {
     custom_keyword!(proc_macro_attribute);
     custom_keyword!(proc_macro);
     custom_keyword!(proc_macro_derive);
+
+    // WARNING: Must be kept same as in macro expansions
+    custom_keyword!(__private_macro_magic_tokens_forwarded);
 }
 
 /// Used to parse args that were passed to [`forward_tokens_internal`].
@@ -596,18 +599,25 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
     let parsed = parse2::<ForwardedTokens>(tokens.into())?;
     let target_path = parsed.target_path;
     let imported_tokens = parsed.item;
-    let combined_tokens = match parsed.extra {
-        Some(extra) => quote! {
-            #imported_tokens,
-            #extra
-        },
-        None => quote!(#imported_tokens),
-    };
-    Ok(quote! {
-        #target_path! {
-            #combined_tokens
-        }
-    })
+    let tokens_forwarded_keyword = keywords::__private_macro_magic_tokens_forwarded::default();
+    let pound = Punct::new('#', Spacing::Alone);
+    match parsed.extra {
+        // some extra, used by attr, so expand to attribute macro
+        Some(extra) => Ok(quote! {
+            #pound [#target_path(
+                #tokens_forwarded_keyword
+                #imported_tokens,
+                #extra
+            )] type __Discarded = ();
+        }),
+        // no extra, used by proc, import_tokens, etc, so expand to proc macro
+        None => Ok(quote! {
+            #target_path! {
+                #tokens_forwarded_keyword
+                #imported_tokens
+            }
+        }),
+    }
 }
 
 /// The internal implementation for the `#[with_custom_parsing(..)` attribute macro.
@@ -729,6 +739,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let orig_sig = proc_macro.proc_fn.sig;
     let orig_stmts = proc_macro.proc_fn.block.stmts;
     let orig_attrs = proc_macro.proc_fn.attrs;
+    let orig_sig_ident = &orig_sig.ident;
 
     // inner macro
     let inner_macro_ident = format_ident!("__import_tokens_attr_{}_inner", orig_sig.ident);
@@ -743,51 +754,65 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         #(#orig_attrs)
         *
         pub #orig_sig {
+            pub #inner_sig {
+                let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::mm_core::AttrItemWithExtra);
+                let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
+                let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
+                let (#tokens_ident, __source_path, __custom_tokens) = {
+                    use #mm_path::mm_core::unescape_extra;
+                    let extra = #tokens_ident.value();
+                    let mut extra_split = extra.split("~~");
+                    let (tokens_string, foreign_path_string, custom_parsed_string) = (
+                        unescape_extra(extra_split.next().unwrap()),
+                        unescape_extra(extra_split.next().unwrap()),
+                        unescape_extra(extra_split.next().unwrap()),
+                    );
+                    let foreign_path: proc_macro::TokenStream = foreign_path_string.as_str().parse().unwrap();
+                    let tokens: proc_macro::TokenStream = tokens_string.as_str().parse().unwrap();
+                    let custom_parsed_tokens: proc_macro::TokenStream = custom_parsed_string.as_str().parse().unwrap();
+                    (tokens, foreign_path, custom_parsed_tokens)
+                };
+                #(#orig_stmts)
+                *
+            }
+
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
             use #mm_path::mm_core::*;
-            let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
-            let attached_item_str = attached_item.to_token_stream().to_string();
-            #path_resolver
-            let extra = format!(
-                "{}~~{}~~{}",
-                escape_extra(attached_item_str),
-                escape_extra(path.to_token_stream().to_string().as_str()),
-                escape_extra(custom_parsed.to_token_stream().to_string().as_str())
-            );
-            quote::quote! {
-                #mm_override_path::forward_tokens! {
-                    #pound path,
-                    #inner_macro_ident,
-                    #mm_override_path,
-                    #pound extra
-                }
-            }.into()
+
+            syn::custom_keyword!(__private_macro_magic_tokens_forwarded);
+
+            let mut cloned_attr = #attr_ident.clone().into_iter();
+            let first_attr_token = cloned_attr.next();
+            let attr_minus_first_token = proc_macro::TokenStream::from_iter(cloned_attr);
+
+            let forwarded = first_attr_token.map_or(false, |token| {
+                syn::parse::<__private_macro_magic_tokens_forwarded>(token.into()).is_ok()
+            });
+
+            if forwarded {
+                #inner_macro_ident(attr_minus_first_token)
+            } else {
+                let attached_item = syn::parse_macro_input!(#tokens_ident as syn::Item);
+                let attached_item_str = attached_item.to_token_stream().to_string();
+                #path_resolver
+                let extra = format!(
+                    "{}~~{}~~{}",
+                    escape_extra(attached_item_str),
+                    escape_extra(path.to_token_stream().to_string().as_str()),
+                    escape_extra(custom_parsed.to_token_stream().to_string().as_str())
+                );
+                quote::quote! {
+                    #mm_override_path::forward_tokens! {
+                        #pound path,
+                        #orig_sig_ident,
+                        #mm_override_path,
+                        #pound extra
+                    }
+                }.into()
+            }
         }
 
-        #[doc(hidden)]
-        #[proc_macro]
-        pub #inner_sig {
-            let __combined_args = #mm_path::__private::syn::parse_macro_input!(#attr_ident as #mm_path::mm_core::AttrItemWithExtra);
-            let (#attr_ident, #tokens_ident) = (__combined_args.imported_item, __combined_args.extra);
-            let #attr_ident: proc_macro::TokenStream = #attr_ident.to_token_stream().into();
-            let (#tokens_ident, __source_path, __custom_tokens) = {
-                use #mm_path::mm_core::unescape_extra;
-                let extra = #tokens_ident.value();
-                let mut extra_split = extra.split("~~");
-                let (tokens_string, foreign_path_string, custom_parsed_string) = (
-                    unescape_extra(extra_split.next().unwrap()),
-                    unescape_extra(extra_split.next().unwrap()),
-                    unescape_extra(extra_split.next().unwrap()),
-                );
-                let foreign_path: proc_macro::TokenStream = foreign_path_string.as_str().parse().unwrap();
-                let tokens: proc_macro::TokenStream = tokens_string.as_str().parse().unwrap();
-                let custom_parsed_tokens: proc_macro::TokenStream = custom_parsed_string.as_str().parse().unwrap();
-                (tokens, foreign_path, custom_parsed_tokens)
-            };
-            #(#orig_stmts)
-            *
-        }
     })
 }
 
@@ -812,6 +837,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let orig_sig = proc_macro.proc_fn.sig;
     let orig_stmts = proc_macro.proc_fn.block.stmts;
     let orig_attrs = proc_macro.proc_fn.attrs;
+    let orig_sig_ident = &orig_sig.ident;
 
     // inner macro
     let inner_macro_ident = format_ident!("__import_tokens_proc_{}_inner", orig_sig.ident);
@@ -830,60 +856,42 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
         #(#orig_attrs)
         *
         pub #orig_sig {
+            #inner_sig {
+                #(#orig_stmts)
+                *
+            }
+
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
-            let source_path = match syn::parse::<syn::Path>(#tokens_ident) {
-                Ok(path) => path,
-                Err(e) => return e.to_compile_error().into(),
-            };
-            quote::quote! {
-                #mm_override_path::forward_tokens! {
-                    #pound source_path,
-                    #inner_macro_ident,
-                    #mm_override_path
-                }
-            }.into()
-        }
 
-        #[doc(hidden)]
-        #[proc_macro]
-        pub #inner_sig {
-            #(#orig_stmts)
-            *
-        }
-    })
-}
+            syn::custom_keyword!(__private_macro_magic_tokens_forwarded);
 
-/// Internal implementation for the `#[use_proc]` and `#[use_attr]` attribute macros
-pub fn use_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
-    attr: T1,
-    tokens: T2,
-    mode: ProcMacroType,
-) -> Result<TokenStream2> {
-    parse2::<Nothing>(attr.into())?;
-    let orig_stmt = parse2::<BasicUseStmt>(tokens.into())?;
-    let orig_path = orig_stmt.path.clone();
-    let orig_attrs = orig_stmt.attrs;
-    let vis = orig_stmt.vis;
-    let ident = &orig_stmt
-        .path
-        .segments
-        .last()
-        .expect("path must have at least one segment")
-        .ident;
-    let hidden_ident = match mode {
-        ProcMacroType::Normal => format_ident!("__import_tokens_proc_{}_inner", ident),
-        ProcMacroType::Attribute => format_ident!("__import_tokens_attr_{}_inner", ident),
-        ProcMacroType::Derive => unimplemented!(),
-    };
-    let mut hidden_path: Path = orig_stmt.path.clone();
-    hidden_path.segments.last_mut().unwrap().ident = hidden_ident;
-    Ok(quote! {
-        #(#orig_attrs)
-        *
-        #vis use #orig_path;
-        #[doc(hidden)]
-        #vis use #hidden_path;
+            let mut cloned_tokens = #tokens_ident.clone().into_iter();
+            let first_token = cloned_tokens.next();
+            let tokens_minus_first = proc_macro::TokenStream::from_iter(cloned_tokens);
+
+            let forwarded = first_token.map_or(false, |token| {
+                syn::parse::<__private_macro_magic_tokens_forwarded>(token.into()).is_ok()
+            });
+
+            if forwarded {
+                #inner_macro_ident(tokens_minus_first)
+            } else {
+                use #mm_path::__private::*;
+                use #mm_path::__private::quote::ToTokens;
+                let source_path = match syn::parse::<syn::Path>(#tokens_ident) {
+                    Ok(path) => path,
+                    Err(e) => return e.to_compile_error().into(),
+                };
+                quote::quote! {
+                    #mm_override_path::forward_tokens! {
+                        #pound source_path,
+                        #orig_sig_ident,
+                        #mm_override_path
+                    }
+                }.into()
+            }
+        }
     })
 }
 
@@ -1056,42 +1064,6 @@ mod tests {
             }
         })
         .is_err());
-    }
-
-    #[test]
-    fn test_parse_use_stmt() {
-        assert!(use_internal(
-            quote!(),
-            quote!(
-                use some::path;
-            ),
-            ProcMacroType::Attribute,
-        )
-        .is_ok());
-        assert!(use_internal(
-            quote!(),
-            quote!(
-                use some::path
-            ),
-            ProcMacroType::Normal,
-        )
-        .is_err());
-        assert!(use_internal(
-            quote!(),
-            quote!(
-                use some::
-            ),
-            ProcMacroType::Attribute,
-        )
-        .is_err());
-        assert!(use_internal(
-            quote!(),
-            quote!(
-                pub use some::long::path;
-            ),
-            ProcMacroType::Attribute,
-        )
-        .is_ok());
     }
 
     #[test]

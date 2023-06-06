@@ -1,9 +1,7 @@
 #![cfg(test)]
 
-#[middle_crate::use_attr]
 use middle_crate::distant_re_export_attr;
 
-#[middle_crate::use_proc]
 use middle_crate::distant_re_export_proc;
 
 #[distant_re_export_attr(middle_crate::ForeignItem)]

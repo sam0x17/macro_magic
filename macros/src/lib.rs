@@ -377,66 +377,22 @@ pub fn with_custom_parsing(attr: TokenStream, tokens: TokenStream) -> TokenStrea
     }
 }
 
-/// Can be used to properly import and re-export attribute macros that were created using
-/// [`macro@import_tokens_attr`].
-///
-/// You should use this if you ever need to import or re-export macros created using this
-/// facility since it will ensure the hidden helper macros are imported and/or re-exported as
-/// well.
-///
-/// This attribute only supports simple, non-tree-based use statements consisting of `use [vis]
-/// [path];` and will fail if you attempt to provide a more complex use statement.
-///
-/// ## Examples
-///
-/// A simple import:
-/// ```ignore
-/// #[use_attr]
-/// use my_crate::some_attribute;
-/// ```
-///
-/// A re-export:
-/// ```ignore
-/// #[use_attr]
-/// pub use my_crate::some_other_attribute;
-/// ```
+/// Deprecated: No-op
+#[deprecated(
+    note = "`use_attr` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely"
+)]
 #[proc_macro_attribute]
-pub fn use_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match use_internal(attr, tokens, ProcMacroType::Attribute) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
+pub fn use_attr(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    tokens
 }
 
-/// Can be used to properly import and re-export proc macros that were created using
-/// [`macro@import_tokens_proc`].
-///
-/// You should use this if you ever need to import or re-export macros created using this
-/// facility since it will ensure the hidden helper macros are imported and/or re-exported as
-/// well.
-///
-/// This attribute only supports simple, non-tree-based use statements consisting of `use [vis]
-/// [path];` and will fail if you attempt to provide a more complex use statement.
-///
-/// ## Examples
-///
-/// A simple import:
-/// ```ignore
-/// #[use_proc]
-/// use my_crate::some_proc_macro;
-/// ```
-///
-/// A re-export:
-/// ```ignore
-/// #[use_proc]
-/// pub use my_crate::some_other_proc_macro;
-/// ```
+/// Deprecated: No-op
+#[deprecated(
+    note = "`use_proc` is no longer needed for importing or re-exporting, implementation is no-op, it can be removed safely"
+)]
 #[proc_macro_attribute]
-pub fn use_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match use_internal(attr, tokens, ProcMacroType::Normal) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
+pub fn use_proc(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    tokens
 }
 
 /// A helper macro used by [`macro@import_tokens`]. Hidden from docs.

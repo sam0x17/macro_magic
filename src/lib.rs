@@ -98,7 +98,4 @@ pub mod __private {
 
     #[cfg(feature = "proc_support")]
     pub use syn::__private::TokenStream2;
-
-    #[cfg(feature = "proc_support")]
-    pub use proc_macro2::TokenTree as TokenTree2;
 }

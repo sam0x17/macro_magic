@@ -29,6 +29,7 @@ macro_magic_macros = { version = "0.3.5", path = "macros" }
 macro_magic_core = { version = "0.3.5", path = "core", optional = true }
 syn = { version = "2", features = ["full"], optional = true }
 quote = { version = "1", optional = true }
+proc-macro2 = { version = "1", optional = true }
 
 [dev-dependencies]
 test_macros = { path = "tests/test_macros" }
@@ -39,4 +40,4 @@ isolated_crate = { path = "tests/isolated_crate" }
 [features]
 default = []
 pretty_print = ["dep:macro_magic_core", "macro_magic_core?/pretty_print"]
-proc_support = ["dep:macro_magic_core", "dep:syn", "dep:quote"]
+proc_support = ["dep:macro_magic_core", "dep:syn", "dep:quote", "dep:proc-macro2"]

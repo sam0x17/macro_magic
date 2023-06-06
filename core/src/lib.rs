@@ -593,7 +593,7 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
         (None, None, None) => Ok(quote! {
             #source_path! { #target_path, #mm_path::__private::forward_tokens_inner }
         }),
-        _ => unreachable!("Macro magic internal error: extra are all used or none is used"),
+        _ => unreachable!("Macro magic internal error: extra are all defined or none are"),
     }
 }
 
@@ -622,7 +622,7 @@ pub fn forward_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result
                 #imported_tokens
             }
         }),
-        _ => unreachable!("Macro magic internal error: extra are all used or none is used"),
+        _ => unreachable!("Macro magic internal error: extra are all defined or none are"),
     }
 }
 

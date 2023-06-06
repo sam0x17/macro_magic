@@ -56,6 +56,9 @@ pub struct ForwardTokensArgs {
     pub mm_path: Option<Path>,
     _comma3: Option<Comma>,
     #[parse_if(_comma3.is_some())]
+    /// Optional extra data. This is how [`import_tokens_attr_internal`] passes the item the
+    /// attribute macro is attached to, but this can be repurposed for other things potentially as
+    /// it could encode anything.
     pub extra: Option<TokenTree2>,
 }
 
@@ -71,6 +74,9 @@ pub struct ForwardedTokens {
     pub item: Item,
     _comma2: Option<Comma>,
     #[parse_if(_comma2.is_some())]
+    /// Optional extra data. This is how [`import_tokens_attr_internal`] passes the item the
+    /// attribute macro is attached to, but this can be repurposed for other things potentially as
+    /// it could encode anything.
     pub extra: Option<TokenTree2>,
 }
 

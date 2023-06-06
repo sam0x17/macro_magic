@@ -54,11 +54,13 @@ pub struct ForwardTokensArgs {
     _comma3: Option<Comma>,
     #[parse_if(_comma3.is_some())]
     pub extra1: Option<TokenTree2>,
+    #[parse_if(_comma3.is_some())]
     _comma4: Option<Comma>,
-    #[parse_if(_comma4.is_some())]
+    #[parse_if(_comma3.is_some())]
     pub extra2: Option<TokenTree2>,
+    #[parse_if(_comma3.is_some())]
     _comma5: Option<Comma>,
-    #[parse_if(_comma5.is_some())]
+    #[parse_if(_comma3.is_some())]
     pub extra3: Option<TokenTree2>,
 }
 
@@ -75,11 +77,13 @@ pub struct ForwardedTokens {
     _comma2: Option<Comma>,
     #[parse_if(_comma2.is_some())]
     pub extra1: Option<TokenTree2>,
+    #[parse_if(_comma2.is_some())]
     _comma3: Option<Comma>,
-    #[parse_if(_comma3.is_some())]
+    #[parse_if(_comma2.is_some())]
     pub extra2: Option<TokenTree2>,
+    #[parse_if(_comma2.is_some())]
     _comma4: Option<Comma>,
-    #[parse_if(_comma4.is_some())]
+    #[parse_if(_comma2.is_some())]
     pub extra3: Option<TokenTree2>,
 }
 

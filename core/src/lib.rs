@@ -27,7 +27,6 @@ use syn::{
 };
 
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
-pub use proc_macro2::TokenTree as TokenTree2;
 
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {

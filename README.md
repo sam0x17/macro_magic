@@ -17,8 +17,7 @@ efficient exportation and importation of item tokens within the same file, and e
 and crate boundaries.
 
 `macro_magic` is designed to work with stable Rust, and is fully `no_std` compatible (in fact,
-there is a unit test to ensure everything is `no_std` safe). The main crate and all sub-crates
-are `no_std`.
+there is a unit test to ensure everything is `no_std` safe).
 
 ## General Syntax
 

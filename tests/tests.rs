@@ -1,3 +1,6 @@
+#![allow(unused)]
+#![allow(dead_code)]
+
 use macro_magic::*;
 
 use macro_magic_macros::export_tokens_no_emit;

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![cfg(test)]
 
 use middle_crate::distant_re_export_attr;

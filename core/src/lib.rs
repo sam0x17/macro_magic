@@ -1,6 +1,11 @@
 //! This crate contains most of the internal implementation of the macros in the
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};
@@ -14,6 +19,9 @@ use syn::{
 };
 
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
+
+/// A global counter, can be used to generate a relatively unique identifier.
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {
@@ -390,8 +398,19 @@ pub fn flatten_ident(ident: &Ident) -> Ident {
 ///
 /// Used by [`export_tokens_internal`] and several other functions.
 pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
-    let ident = flatten_ident(&ident);
+    let ident = flatten_ident(ident);
     let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
+    Ident::new(ident_string.as_str(), Span::call_site())
+}
+
+fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
+    let unique_id = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let ident = flatten_ident(ident);
+    let ident_string = format!(
+        "__export_tokens_tt_{}_{}",
+        ident.to_token_stream().to_string(),
+        unique_id
+    );
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 

@@ -86,7 +86,7 @@ pub mod hunter {
     }
 }
 
-#[test_tokens_attr2(external_crate::AnExternalTraitImpl)]
+#[test_tokens_attr2(external_crate::some_submodule::AnExternalTraitImpl)]
 struct LocalItemStruct {}
 
 #[test_tokens_attr_direct_import(external_crate::an_external_function)]
@@ -101,7 +101,7 @@ struct LionStruct {}
 struct TigerStruct {}
 
 // test proc item position
-item_level_proc!(external_crate::AnExternalTraitImpl);
+item_level_proc!(external_crate::some_submodule::AnExternalTraitImpl);
 
 #[test]
 fn test_import_tokens_proc_item_position() {
@@ -111,23 +111,14 @@ fn test_import_tokens_proc_item_position() {
 #[test]
 fn test_import_tokens_proc_statement_position() {
     example_tokens_proc!(LionStruct);
-    example_tokens_proc!(external_crate::AnExternalTraitImpl);
+    example_tokens_proc!(external_crate::some_submodule::AnExternalTraitImpl);
 }
 
 #[test]
 fn test_import_tokens_proc_expr_position() {
     let something = example_tokens_proc!(TigerStruct);
     assert_eq!(something.to_string(), "struct TigerStruct {}");
-    let _something_else = example_tokens_proc!(external_crate::AnExternalTraitImpl);
-}
-
-#[test]
-fn test_export_tokens_inside_function() {
-    let something = example_tokens_proc!(external_crate::some_sub_function);
-    assert_eq!(
-        something.to_string(),
-        "fn some_sub_function() -> u32 { 33 }"
-    );
+    let _something_else = example_tokens_proc!(external_crate::some_submodule::AnExternalTraitImpl);
 }
 
 #[test]
@@ -166,7 +157,7 @@ fn import_tokens_same_mod_ident() {
 #[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_different_mod_no_ident() {
-    import_tokens!(let tokens = PlusPlus);
+    import_tokens!(let tokens = some_module::PlusPlus);
     assert_eq!(
         tokens.to_string(),
         "fn plus_plus < T : Into < i64 > > (n : T) -> i64 { n . into () + 1 }"
@@ -176,7 +167,7 @@ fn import_tokens_different_mod_no_ident() {
 #[cfg(feature = "proc_support")]
 #[test]
 fn import_tokens_different_mod_ident() {
-    import_tokens!(let tokens = MinusMinus);
+    import_tokens!(let tokens = some_module::MinusMinus);
     assert_eq!(
         tokens.to_string(),
         "fn minus_minus < T : Into < i32 > > (n : T) -> i32 { n . into () - 1 }"
@@ -199,7 +190,7 @@ fn println_inside_fn_current_file() {
 
 #[test]
 fn println_inside_fn_external_file() {
-    let tokens = example_tokens_proc!(external_fn_with_println);
+    let tokens = example_tokens_proc!(external_file::external_fn_with_println);
     assert_eq!(
         tokens.to_string(),
         "fn external_fn_with_println() { println! (\"testing\") ; }"

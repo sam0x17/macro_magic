@@ -36,8 +36,8 @@
 //! require this feature to function correctly, so you can safely use it without enabling this
 //! feature.
 //!
-//! The reason for this feature gating is that things like [`syn`], [`quote`], `proc_macro2`,
-//! etc., are not 100% `no_std` compatible and should only be enabled in proc macro crates
+//! The reason for this feature gating is that things like `syn`, `quote`, `proc_macro2`, etc.,
+//! are not 100% `no_std` compatible and should only be enabled in proc macro crates.
 //!
 //! ## Limitations
 //!

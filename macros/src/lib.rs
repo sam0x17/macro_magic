@@ -3,14 +3,14 @@
 use macro_magic_core::*;
 use proc_macro::TokenStream;
 
-/// Can be applied to any [`syn::Item`] compatible item. Doing so will make the tokens for this
+/// Can be applied to any `syn::Item` compatible item. Doing so will make the tokens for this
 /// item available for import by the other macros in this crate.
 ///
 /// An optional argument can be provided specifying an override export name to use instead of
 /// the regular name of the item, such as `#[export_tokens(MyCoolName)]` or
-/// `#[export_tokens(some_name)]`. Syntactically this name is parsed as a [`struct@syn::Ident`]
-/// and is then normalized by converting to snake_case. Note that because of this, `MyCoolName`
-/// would collide with `my_cool_name`, resulting in a compiler error if these items are being
+/// `#[export_tokens(some_name)]`. Syntactically this name is parsed as a `syn::Ident` and is
+/// then normalized by converting to snake_case. Note that because of this, `MyCoolName` would
+/// collide with `my_cool_name`, resulting in a compiler error if these items are being
 /// exported from the same crate.
 ///
 /// The reason this is true of items in the same _crate_ rather than just the same _module_ is
@@ -26,8 +26,8 @@ use proc_macro::TokenStream;
 /// that item's tokens. You can export the tokens of items in completely private modules
 /// without worrying about visibility.
 ///
-/// Note also that some types of items, namely [`syn::ItemForeignMod`], [`syn::ItemUse`],
-/// [`syn::ItemImpl`], and [`syn::Item::Verbatim`], do not have an inherent concept of a naming
+/// Note also that some types of items, namely `syn::ItemForeignMod`, `syn::ItemUse`,
+/// `syn::ItemImpl`, and `syn::Item::Verbatim`, do not have an inherent concept of a naming
 /// ident, and so for these items specifying an override name is required or you will get a
 /// compiler error. This also applies to `macro_rules!` definitions that do not specify a name.
 ///
@@ -280,9 +280,9 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// Can only be used within a proc macro crate.
 ///
 /// A handy `__source_path: TokenStream` variable is also injected into your proc macro
-/// function definition which provides access to the original [`syn::Path`] that was provided
-/// as the path for the foreign item before its tokens were imported. You can access this
-/// directly simply by referring to `__source_path`. This should parse to a [`syn::Path`].
+/// function definition which provides access to the original `syn::Path` that was provided as
+/// the path for the foreign item before its tokens were imported. You can access this directly
+/// simply by referring to `__source_path`. This should parse to a `syn::Path`.
 ///
 /// Note that you can provide a module path as an optional argument to this attribute macro and
 /// that path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code
@@ -300,7 +300,7 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// attribute definition that you attached `#[import_tokens_attr]` to.
 ///
 /// This optional attribute takes one argument, which should be the path to a struct that
-/// implements [`syn::parse::Parse`], [`quote::ToTokens`], and [`ForeignPath`]. To access the
+/// implements `syn::parse::Parse`, `quote::ToTokens`, and [`ForeignPath`]. To access the
 /// tokens for your custom parsed input, you can use the magic variable `__custom_tokens:
 /// TokenStream` anywhere in your attribute proc macro.
 ///
@@ -345,8 +345,8 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// ```
 ///
 /// This is just an example, you could implement the parsing any way you want, maybe even using
-/// something that isn't initially a [`syn::Path`] but is transformed into one. The
-/// possibilities are endless.
+/// something that isn't initially a `syn::Path` but is transformed into one. The possibilities
+/// are endless.
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_attr_internal(attr, tokens) {

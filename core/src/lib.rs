@@ -1,6 +1,7 @@
 //! This crate contains most of the internal implementation of the macros in the
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use derive_syn_parse::Parse;

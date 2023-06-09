@@ -1,16 +1,6 @@
 //! This crate contains most of the internal implementation of the macros in the
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
-
-#![no_std]
-extern crate alloc;
-
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
-
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};

@@ -11,9 +11,6 @@ use alloc::{
     vec::Vec,
 };
 
-#[cfg(feature = "pretty_print")]
-use libc_print::libc_println as println;
-
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};
@@ -321,19 +318,6 @@ pub fn parse_proc_macro_variant<T: Into<TokenStream2>>(
     Ok(proc_macro)
 }
 
-/// Convenience function that will pretty-print anything compatible with [`TokenStream2`]
-/// including [`TokenStream2`], `TokenStream`, and all [`syn`] items.
-///
-/// Uses the `prettyplease` crate. Only built if the `pretty_print` feature is enabled.
-#[cfg(feature = "pretty_print")]
-pub fn pretty_print<T: Into<TokenStream2> + Clone>(tokens: &T) {
-    let tokens = (*tokens).clone();
-    println!(
-        "\n\n{}\n\n",
-        prettyplease::unparse(&syn::parse_file(tokens.into().to_string().as_str()).unwrap())
-    );
-}
-
 /// Safely access the `macro_magic` root based on the `MACRO_MAGIC_ROOT` env var, which
 /// defaults to `::macro_magic`, but can be configured via the `[env]` section of
 /// `.cargo/config.toml`
@@ -501,7 +485,6 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         }
         #item_emit
     };
-    // pretty_print(&output);
     Ok(output)
 }
 

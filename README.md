@@ -233,13 +233,6 @@ use it without enabling this feature.
 The reason for this feature gating is that things like `syn`, `quote`, `proc_macro2`, etc., are
 not 100% `no_std` compatible and should only be enabled in proc macro crates
 
-### pretty_print
-
-The `pretty_print` feature, when enabled, adds a `pretty_print` function to
-`macro_magic::mm_core` which is capable of printing anything compatible with
-`Into<TokenStream2>` and is highly useful for debugging. This feature is not enabled by default
-since it relies on some things that can be problematic in `no_std` environments.
-
 ## Limitations
 
 One thing that `macro_magic` _doesn't_ provide is the ability to build up state information

@@ -38,5 +38,4 @@ isolated_crate = { path = "tests/isolated_crate" }
 
 [features]
 default = []
-pretty_print = ["dep:macro_magic_core", "macro_magic_core?/pretty_print"]
 proc_support = ["dep:macro_magic_core", "dep:syn", "dep:quote"]

@@ -2,7 +2,7 @@
 
 use macro_magic::*;
 
-mod some_submodule {
+pub mod some_submodule {
     use macro_magic::*;
 
     struct FooBarStruct {}
@@ -38,13 +38,6 @@ fn an_external_function(my_num: u32) -> u32 {
 mod an_external_module {
     fn my_cool_function() -> u32 {
         567
-    }
-}
-
-fn _some_function() {
-    #[export_tokens]
-    fn some_sub_function() -> u32 {
-        33
     }
 }
 

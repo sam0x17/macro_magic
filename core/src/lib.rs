@@ -1,6 +1,9 @@
 //! This crate contains most of the internal implementation of the macros in the
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
+
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};
@@ -14,6 +17,9 @@ use syn::{
 };
 
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
+
+/// A global counter, can be used to generate a relatively unique identifier.
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {
@@ -390,8 +396,33 @@ pub fn flatten_ident(ident: &Ident) -> Ident {
 ///
 /// Used by [`export_tokens_internal`] and several other functions.
 pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
-    let ident = flatten_ident(&ident);
+    let ident = flatten_ident(ident);
     let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
+    Ident::new(ident_string.as_str(), Span::call_site())
+}
+
+pub fn export_tokens_macro_path(item_path: &Path) -> Path {
+    let Some(last_seg) = item_path.segments.last() else { unreachable!("must have at least one segment") };
+    let mut leading_segs = item_path
+        .segments
+        .iter()
+        .cloned()
+        .map(|seg| seg.ident)
+        .collect::<Vec<_>>()[0..item_path.segments.len() - 1]
+        .to_vec();
+    let last_seg = export_tokens_macro_ident(&last_seg.ident);
+    leading_segs.push(last_seg);
+    parse_quote!(#(#leading_segs)::*)
+}
+
+fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
+    let unique_id = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let ident = flatten_ident(ident);
+    let ident_string = format!(
+        "__export_tokens_tt_{}_{}",
+        ident.to_token_stream().to_string(),
+        unique_id
+    );
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
@@ -441,6 +472,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         }
         None => parse2::<Ident>(attr)?,
     };
+    let macro_ident = new_unique_export_tokens_ident(&ident);
     let ident = export_tokens_macro_ident(&ident);
     let item_emit = match emit {
         true => quote! {
@@ -452,7 +484,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     let output = quote! {
         #[doc(hidden)]
         #[macro_export]
-        macro_rules! #ident {
+        macro_rules! #macro_ident {
             // arm with extra support (used by attr)
             (
                 $(::)?$($tokens_var:ident)::*,
@@ -473,6 +505,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
                 }
             };
         }
+        pub use #macro_ident as #ident;
         #item_emit
     };
     Ok(output)
@@ -526,16 +559,7 @@ pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(
 /// where `my_tokens` contains the tokens of `ExportedItem`.
 pub fn import_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
     let args = parse2::<ImportTokensArgs>(tokens.into())?;
-    let Some(source_ident_seg) = args.source_path.segments.last() else { unreachable!("must have at least one segment") };
-    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
-    let source_path = if args.source_path.segments.len() > 1 {
-        let Some(crate_seg) = args.source_path.segments.first() else {
-            unreachable!("path has at least two segments, so there is a first segment");
-        };
-        quote!(#crate_seg::#source_ident_seg)
-    } else {
-        quote!(#source_ident_seg)
-    };
+    let source_path = export_tokens_macro_path(&args.source_path);
     let inner_macro_path = private_path(&quote!(import_tokens_inner));
     let tokens_var_ident = args.tokens_var_ident;
     Ok(quote! {
@@ -565,16 +589,7 @@ pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<Token
         Some(path) => path,
         None => macro_magic_root(),
     };
-    let Some(source_ident_seg) = args.source.segments.last() else { unreachable!("must have at least one segment") };
-    let source_ident_seg = export_tokens_macro_ident(&source_ident_seg.ident);
-    let source_path = if args.source.segments.len() > 1 {
-        let Some(crate_seg) = args.source.segments.first() else {
-            unreachable!("path has at least two segments, so there is a first segment");
-        };
-        quote!(#crate_seg::#source_ident_seg)
-    } else {
-        quote!(#source_ident_seg)
-    };
+    let source_path = export_tokens_macro_path(&args.source);
     let target_path = args.target;
     if let Some(extra) = args.extra {
         Ok(quote! {

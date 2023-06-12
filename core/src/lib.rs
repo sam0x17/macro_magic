@@ -703,6 +703,9 @@ pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream
     Ok(quote!(#item_fn))
 }
 
+/// Parses the (attribute) args of [`import_tokens_attr_internal`] and
+/// [`import_tokens_proc_internal`], which can now evaluate to either a `Path` or an `Expr`
+/// that is expected to be able to be placed in a `String::from(x)`.
 enum OverridePath {
     Path(Path),
     Expr(Expr),
@@ -857,11 +860,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
-    let mm_override_path = if attr.is_empty() {
-        macro_magic_root()
-    } else {
-        parse2::<Path>(attr)?
-    };
+    let mm_override_path = parse2::<OverridePath>(attr)?;
     let mm_path = macro_magic_root();
     let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Normal)?;
 
@@ -915,11 +914,12 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(path) => path,
                     Err(e) => return e.to_compile_error().into(),
                 };
+                let resolved_mm_override_path = syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()).unwrap();
                 quote::quote! {
-                    #mm_override_path::forward_tokens! {
+                    #pound resolved_mm_override_path::forward_tokens! {
                         #pound source_path,
                         #orig_sig_ident,
-                        #mm_override_path
+                        #pound resolved_mm_override_path
                     }
                 }.into()
             }

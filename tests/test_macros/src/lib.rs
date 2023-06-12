@@ -87,7 +87,7 @@ pub fn distant_re_export_attr(attr: TokenStream, tokens: TokenStream) -> TokenSt
     .into()
 }
 
-#[import_tokens_proc(middle_crate::export_mod::sub_mod::macro_magic)]
+#[import_tokens_proc(format!("middle_crate::export_mod::{}::macro_magic", "sub_mod"))]
 #[proc_macro]
 pub fn distant_re_export_proc(tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(tokens as Item);

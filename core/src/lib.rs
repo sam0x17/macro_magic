@@ -745,7 +745,16 @@ impl syn::parse::Parse for OverridePath {
         if let Ok(path) = parse2::<Path>(remaining.clone()) {
             return Ok(OverridePath::Path(path));
         }
-        Ok(OverridePath::Expr(parse2::<Expr>(remaining)?))
+        match parse2::<Expr>(remaining) {
+            Ok(expr) => Ok(OverridePath::Expr(expr)),
+            Err(mut err) => {
+                err.combine(Error::new(
+                    input.span(), 
+                    "Expected either a `Path` or an `Expr` that evaluates to something compatible with `Into<String>`."
+                ));
+                Err(err)
+            }
+        }
     }
 }
 

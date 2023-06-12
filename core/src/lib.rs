@@ -6,14 +6,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
-use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};
+use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use syn::{
-    parse::Nothing,
+    parse::{Nothing, ParseStream},
     parse2, parse_quote,
     spanned::Spanned,
     token::{Brace, Comma},
-    Attribute, Error, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
+    Attribute, Error, Expr, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
 };
 
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
@@ -703,6 +703,39 @@ pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream
     Ok(quote!(#item_fn))
 }
 
+enum OverridePath {
+    Path(Path),
+    Expr(Expr),
+}
+
+impl syn::parse::Parse for OverridePath {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Ok(OverridePath::Path(macro_magic_root()));
+        }
+        let mut remaining = TokenStream2::new();
+        while !input.is_empty() {
+            remaining.extend(input.parse::<TokenTree>()?.to_token_stream());
+        }
+        if let Ok(path) = parse2::<Path>(remaining.clone()) {
+            return Ok(OverridePath::Path(path));
+        }
+        Ok(OverridePath::Expr(parse2::<Expr>(remaining)?))
+    }
+}
+
+impl ToTokens for OverridePath {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        match self {
+            OverridePath::Path(path) => {
+                let path = path.to_token_stream().to_string();
+                tokens.extend(quote!(#path))
+            }
+            OverridePath::Expr(expr) => tokens.extend(quote!(#expr)),
+        }
+    }
+}
+
 /// Internal implementation for the `#[import_tokens_attr]` attribute.
 ///
 /// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
@@ -712,11 +745,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
-    let mm_override_path = if attr.is_empty() {
-        macro_magic_root()
-    } else {
-        parse2::<Path>(attr)?
-    };
+    let mm_override_path = parse2::<OverridePath>(attr)?;
     let mm_path = macro_magic_root();
     let mut proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
 
@@ -762,7 +791,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let pound = Punct::new('#', Spacing::Alone);
 
     // final quoted tokens
-    Ok(quote! {
+    let output = quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
@@ -799,12 +828,13 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 let attached_item = attached_item.to_token_stream();
                 #path_resolver
                 let path = path.to_token_stream();
-                let custon_parsed = custom_parsed.to_token_stream();
+                let custom_parsed = custom_parsed.to_token_stream();
+                let resolved_mm_override_path = syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()).unwrap();
                 quote::quote! {
-                    #mm_override_path::forward_tokens! {
+                    #pound resolved_mm_override_path::forward_tokens! {
                         #pound path,
                         #orig_sig_ident,
-                        #mm_override_path,
+                        #pound resolved_mm_override_path,
                         {
                             { #pound attached_item },
                             { #pound path },
@@ -814,8 +844,8 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 }.into()
             }
         }
-
-    })
+    };
+    Ok(output)
 }
 
 /// Internal implementation for the `#[import_tokens_proc]` attribute.

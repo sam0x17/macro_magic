@@ -113,8 +113,8 @@ pub struct AttrItemWithExtra {
     #[brace]
     #[inside(_brace)]
     _tokens_ident_brace: Brace,
-    /// A [`TokenStream2`] representing the raw tokens for the [`Ident`] the generated macro
-    /// will use to refer to the tokens argument of the macro.
+    /// A [`TokenStream2`] representing the raw tokens for the [`struct@Ident`] the generated
+    /// macro will use to refer to the tokens argument of the macro.
     #[inside(_tokens_ident_brace)]
     pub tokens_ident: TokenStream2,
     #[inside(_brace)]
@@ -145,7 +145,7 @@ pub struct AttrItemWithExtra {
 #[derive(Parse)]
 pub struct ImportTokensArgs {
     _let: Token![let],
-    /// The [`Ident`] for the `tokens` variable. Usually called [`tokens`] but could be
+    /// The [`struct@Ident`] for the `tokens` variable. Usually called `tokens` but could be
     /// something different, hence this variable.
     pub tokens_var_ident: Ident,
     _eq: Token![=],
@@ -158,7 +158,7 @@ pub struct ImportTokensArgs {
 /// You shouldn't need to use this directly.
 #[derive(Parse)]
 pub struct ImportedTokens {
-    /// Represents the [`Ident`] that was used to refer to the `tokens` in the original
+    /// Represents the [`struct@Ident`] that was used to refer to the `tokens` in the original
     /// [`ImportTokensArgs`].
     pub tokens_var_ident: Ident,
     _comma: Comma,

@@ -854,7 +854,10 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 #path_resolver
                 let path = path.to_token_stream();
                 let custom_parsed = custom_parsed.to_token_stream();
-                let resolved_mm_override_path = syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()).unwrap();
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                    Ok(res) => res,
+                    Err(err) => return err.to_compile_error().into()
+                };
                 quote::quote! {
                     #pound resolved_mm_override_path::forward_tokens! {
                         #pound path,
@@ -936,7 +939,10 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(path) => path,
                     Err(e) => return e.to_compile_error().into(),
                 };
-                let resolved_mm_override_path = syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()).unwrap();
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                    Ok(res) => res,
+                    Err(err) => return err.to_compile_error().into()
+                };
                 quote::quote! {
                     #pound resolved_mm_override_path::forward_tokens! {
                         #pound source_path,

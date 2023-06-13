@@ -424,9 +424,9 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
 /// on the item at that path, the returned macro path will be invalid.
 pub fn export_tokens_macro_path(item_path: &Path) -> Path {
     let mut macro_path = item_path.clone();
-    let Some(syn::punctuated::Pair::End(last_seg)) = macro_path.segments.pop()
-        else { unreachable!("Path must have a last segment") };
-    let last_seg = export_tokens_macro_ident(&last_seg.ident);
+    let Some(last_seg) = macro_path.segments.pop()
+        else { unreachable!("must have at least one segment") };
+    let last_seg = export_tokens_macro_ident(&last_seg.into_value().ident);
     macro_path.segments.push(last_seg.into());
     macro_path
 }

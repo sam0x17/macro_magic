@@ -423,17 +423,12 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
 /// If the specified [`Path`] doesn't exist or there isn't a valid `#[export_tokens]` attribute
 /// on the item at that path, the returned macro path will be invalid.
 pub fn export_tokens_macro_path(item_path: &Path) -> Path {
-    let Some(last_seg) = item_path.segments.last() else { unreachable!("must have at least one segment") };
-    let mut leading_segs = item_path
-        .segments
-        .iter()
-        .cloned()
-        .map(|seg| seg.ident)
-        .collect::<Vec<_>>()[0..item_path.segments.len() - 1]
-        .to_vec();
-    let last_seg = export_tokens_macro_ident(&last_seg.ident);
-    leading_segs.push(last_seg);
-    parse_quote!(#(#leading_segs)::*)
+    let mut macro_path = item_path.clone();
+    let Some(last_seg) = macro_path.segments.pop()
+        else { unreachable!("must have at least one segment") };
+    let last_seg = export_tokens_macro_ident(&last_seg.into_value().ident);
+    macro_path.segments.push(last_seg.into());
+    macro_path
 }
 
 /// Generates a new unique `#[export_tokens]` macro identifier
@@ -841,6 +836,11 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 *
             }
 
+            // This is to avoid corrupting the scope with imports below
+            fn isolated_mm_override_path() -> String {
+                String::from(#mm_override_path)
+            }
+
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
             use #mm_path::mm_core::*;
@@ -863,7 +863,8 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 #path_resolver
                 let path = path.to_token_stream();
                 let custom_parsed = custom_parsed.to_token_stream();
-                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                let mm_override_tokenstream = isolated_mm_override_path().parse().unwrap();
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(mm_override_tokenstream) {
                     Ok(res) => res,
                     Err(err) => return err.to_compile_error().into()
                 };
@@ -926,6 +927,11 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 *
             }
 
+            // This is to avoid corrupting the scope with imports below
+            fn isolated_mm_override_path() -> String {
+                String::from(#mm_override_path)
+            }
+
             use #mm_path::__private::*;
             use #mm_path::__private::quote::ToTokens;
 
@@ -948,7 +954,8 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(path) => path,
                     Err(e) => return e.to_compile_error().into(),
                 };
-                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                let mm_override_tokenstream = isolated_mm_override_path().parse().unwrap();
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(mm_override_tokenstream) {
                     Ok(res) => res,
                     Err(err) => return err.to_compile_error().into()
                 };

@@ -70,7 +70,9 @@ pub fn some_other_macro(tokens: TokenStream) -> TokenStream {
     .into()
 }
 
-#[import_tokens_attr(middle_crate::export_mod::sub_mod::macro_magic)]
+// as demonstrated here, `import_tokens_attr` can take a path or an expression that evaluates
+// to something compatible with `Into<String>`
+#[import_tokens_attr(format!("{}::export_mod::sub_mod::macro_magic", "middle_crate"))]
 #[proc_macro_attribute]
 pub fn distant_re_export_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(attr as Item);
@@ -85,7 +87,7 @@ pub fn distant_re_export_attr(attr: TokenStream, tokens: TokenStream) -> TokenSt
     .into()
 }
 
-#[import_tokens_proc(middle_crate::export_mod::sub_mod::macro_magic)]
+#[import_tokens_proc(format!("middle_crate::export_mod::{}::macro_magic", "sub_mod"))]
 #[proc_macro]
 pub fn distant_re_export_proc(tokens: TokenStream) -> TokenStream {
     let imported_item = parse_macro_input!(tokens as Item);

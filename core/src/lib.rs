@@ -1,21 +1,26 @@
 //! This crate contains most of the internal implementation of the macros in the
 //! `macro_magic_macros` crate. For the most part, the proc macros in `macro_magic_macros` just
 //! call their respective `_internal` variants in this crate.
+#![warn(missing_docs)]
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
-use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2};
+use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use syn::{
-    parse::Nothing,
+    parse::{Nothing, ParseStream},
     parse2, parse_quote,
     spanned::Spanned,
     token::{Brace, Comma},
-    Attribute, Error, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
+    Attribute, Error, Expr, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
 };
 
+/// Constant used to load the configured location for `macro_magic` that will be used in
+/// generated macro code.
+///
+/// See also [`get_macro_magic_root`].
 pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
 
 /// A global counter, can be used to generate a relatively unique identifier.
@@ -41,6 +46,7 @@ mod keywords {
 pub struct ForwardTokensExtraArg {
     #[brace]
     _brace: Brace,
+    /// Contains the underlying [`TokenStream2`] inside the brace.
     #[inside(_brace)]
     pub stream: TokenStream2,
 }
@@ -63,6 +69,7 @@ pub struct ForwardTokensArgs {
     /// The path of the macro that will receive the forwarded tokens
     pub target: Path,
     _comma2: Option<Comma>,
+    /// Contains the override path that will be used instead of `::macro_magic`, if specified.
     #[parse_if(_comma2.is_some())]
     pub mm_path: Option<Path>,
     _comma3: Option<Comma>,
@@ -97,6 +104,8 @@ pub struct ForwardedTokens {
 /// You shouldn't need to use this directly.
 #[derive(Parse)]
 pub struct AttrItemWithExtra {
+    /// Contains the [`Item`] that is being imported (i.e. the item whose tokens we are
+    /// obtaining)
     pub imported_item: Item,
     _comma1: Comma,
     #[brace]
@@ -104,6 +113,8 @@ pub struct AttrItemWithExtra {
     #[brace]
     #[inside(_brace)]
     _tokens_ident_brace: Brace,
+    /// A [`TokenStream2`] representing the raw tokens for the [`struct@Ident`] the generated
+    /// macro will use to refer to the tokens argument of the macro.
     #[inside(_tokens_ident_brace)]
     pub tokens_ident: TokenStream2,
     #[inside(_brace)]
@@ -111,6 +122,7 @@ pub struct AttrItemWithExtra {
     #[brace]
     #[inside(_brace)]
     _source_path_brace: Brace,
+    /// Represents the path of the item that is being imported.
     #[inside(_source_path_brace)]
     pub source_path: TokenStream2,
     #[inside(_brace)]
@@ -118,6 +130,11 @@ pub struct AttrItemWithExtra {
     #[brace]
     #[inside(_brace)]
     _custom_tokens_brace: Brace,
+    /// when `#[with_custom_parsing(..)]` is used, the variable `__custom_tokens` will be
+    /// populated in the resulting proc macro containing the raw [`TokenStream2`] for the
+    /// tokens before custom parsing has been applied. This allows you to make use of any extra
+    /// context information that may be obtained during custom parsing that you need to utilize
+    /// in the final macro.
     #[inside(_custom_tokens_brace)]
     pub custom_tokens: TokenStream2,
 }
@@ -128,8 +145,11 @@ pub struct AttrItemWithExtra {
 #[derive(Parse)]
 pub struct ImportTokensArgs {
     _let: Token![let],
+    /// The [`struct@Ident`] for the `tokens` variable. Usually called `tokens` but could be
+    /// something different, hence this variable.
     pub tokens_var_ident: Ident,
     _eq: Token![=],
+    /// The [`Path`] where the item we are importing can be found.
     pub source_path: Path,
 }
 
@@ -138,19 +158,12 @@ pub struct ImportTokensArgs {
 /// You shouldn't need to use this directly.
 #[derive(Parse)]
 pub struct ImportedTokens {
+    /// Represents the [`struct@Ident`] that was used to refer to the `tokens` in the original
+    /// [`ImportTokensArgs`].
     pub tokens_var_ident: Ident,
     _comma: Comma,
+    /// Contains the [`Item`] that has been imported.
     pub item: Item,
-}
-
-#[derive(Parse)]
-pub struct BasicUseStmt {
-    #[call(Attribute::parse_outer)]
-    pub attrs: Vec<Attribute>,
-    pub vis: Visibility,
-    _use: Token![use],
-    pub path: Path,
-    _semi: Token![;],
 }
 
 /// Delineates the different types of proc macro
@@ -212,9 +225,13 @@ impl ProcMacroType {
 /// }
 /// ```
 pub trait ForeignPath {
+    /// Returns the path of the foreign item whose tokens will be imported.
+    ///
+    /// This is used with custom parsing. See [`ForeignPath`] for more info.
     fn foreign_path(&self) -> &syn::Path;
 }
 
+/// Generically parses a proc macro definition with support for all variants.
 #[derive(Clone)]
 pub struct ProcMacro {
     /// The underlying proc macro function definition
@@ -401,6 +418,10 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
+/// Resolves to the path of the `#[export_tokens]` macro for the given item path.
+///
+/// If the specified [`Path`] doesn't exist or there isn't a valid `#[export_tokens]` attribute
+/// on the item at that path, the returned macro path will be invalid.
 pub fn export_tokens_macro_path(item_path: &Path) -> Path {
     let Some(last_seg) = item_path.segments.last() else { unreachable!("must have at least one segment") };
     let mut leading_segs = item_path
@@ -415,6 +436,7 @@ pub fn export_tokens_macro_path(item_path: &Path) -> Path {
     parse_quote!(#(#leading_segs)::*)
 }
 
+/// Generates a new unique `#[export_tokens]` macro identifier
 fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
     let unique_id = COUNTER.fetch_add(1, Ordering::SeqCst);
     let ident = flatten_ident(ident);
@@ -703,6 +725,51 @@ pub fn with_custom_parsing_internal<T1: Into<TokenStream2>, T2: Into<TokenStream
     Ok(quote!(#item_fn))
 }
 
+/// Parses the (attribute) args of [`import_tokens_attr_internal`] and
+/// [`import_tokens_proc_internal`], which can now evaluate to either a `Path` or an `Expr`
+/// that is expected to be able to be placed in a `String::from(x)`.
+enum OverridePath {
+    Path(Path),
+    Expr(Expr),
+}
+
+impl syn::parse::Parse for OverridePath {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Ok(OverridePath::Path(macro_magic_root()));
+        }
+        let mut remaining = TokenStream2::new();
+        while !input.is_empty() {
+            remaining.extend(input.parse::<TokenTree>()?.to_token_stream());
+        }
+        if let Ok(path) = parse2::<Path>(remaining.clone()) {
+            return Ok(OverridePath::Path(path));
+        }
+        match parse2::<Expr>(remaining) {
+            Ok(expr) => Ok(OverridePath::Expr(expr)),
+            Err(mut err) => {
+                err.combine(Error::new(
+                    input.span(),
+                    "Expected either a `Path` or an `Expr` that evaluates to something compatible with `Into<String>`."
+                ));
+                Err(err)
+            }
+        }
+    }
+}
+
+impl ToTokens for OverridePath {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        match self {
+            OverridePath::Path(path) => {
+                let path = path.to_token_stream().to_string();
+                tokens.extend(quote!(#path))
+            }
+            OverridePath::Expr(expr) => tokens.extend(quote!(#expr)),
+        }
+    }
+}
+
 /// Internal implementation for the `#[import_tokens_attr]` attribute.
 ///
 /// You shouldn't need to use this directly, but it may be useful if you wish to rebrand/rename
@@ -712,11 +779,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
-    let mm_override_path = if attr.is_empty() {
-        macro_magic_root()
-    } else {
-        parse2::<Path>(attr)?
-    };
+    let mm_override_path = parse2::<OverridePath>(attr)?;
     let mm_path = macro_magic_root();
     let mut proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Attribute)?;
 
@@ -762,7 +825,7 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     let pound = Punct::new('#', Spacing::Alone);
 
     // final quoted tokens
-    Ok(quote! {
+    let output = quote! {
         #(#orig_attrs)
         *
         pub #orig_sig {
@@ -799,12 +862,16 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 let attached_item = attached_item.to_token_stream();
                 #path_resolver
                 let path = path.to_token_stream();
-                let custon_parsed = custom_parsed.to_token_stream();
+                let custom_parsed = custom_parsed.to_token_stream();
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                    Ok(res) => res,
+                    Err(err) => return err.to_compile_error().into()
+                };
                 quote::quote! {
-                    #mm_override_path::forward_tokens! {
+                    #pound resolved_mm_override_path::forward_tokens! {
                         #pound path,
                         #orig_sig_ident,
-                        #mm_override_path,
+                        #pound resolved_mm_override_path,
                         {
                             { #pound attached_item },
                             { #pound path },
@@ -814,8 +881,8 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                 }.into()
             }
         }
-
-    })
+    };
+    Ok(output)
 }
 
 /// Internal implementation for the `#[import_tokens_proc]` attribute.
@@ -827,11 +894,7 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
     tokens: T2,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
-    let mm_override_path = if attr.is_empty() {
-        macro_magic_root()
-    } else {
-        parse2::<Path>(attr)?
-    };
+    let mm_override_path = parse2::<OverridePath>(attr)?;
     let mm_path = macro_magic_root();
     let proc_macro = parse_proc_macro_variant(tokens, ProcMacroType::Normal)?;
 
@@ -885,11 +948,15 @@ pub fn import_tokens_proc_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(path) => path,
                     Err(e) => return e.to_compile_error().into(),
                 };
+                let resolved_mm_override_path = match syn::parse2::<syn::Path>(String::from(#mm_override_path).parse().unwrap()) {
+                    Ok(res) => res,
+                    Err(err) => return err.to_compile_error().into()
+                };
                 quote::quote! {
-                    #mm_override_path::forward_tokens! {
+                    #pound resolved_mm_override_path::forward_tokens! {
                         #pound source_path,
                         #orig_sig_ident,
-                        #mm_override_path
+                        #pound resolved_mm_override_path
                     }
                 }.into()
             }

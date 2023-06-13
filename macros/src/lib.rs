@@ -3,37 +3,25 @@
 use macro_magic_core::*;
 use proc_macro::TokenStream;
 
-/// Can be applied to any `syn::Item` compatible item. Doing so will make the tokens for this
-/// item available for import by the other macros in this crate.
+/// Can be applied to any item. Doing so will make the tokens for this item available for
+/// import by the other macros in this crate.
 ///
 /// An optional argument can be provided specifying an override export name to use instead of
 /// the regular name of the item, such as `#[export_tokens(MyCoolName)]` or
 /// `#[export_tokens(some_name)]`. Syntactically this name is parsed as a `syn::Ident` and is
 /// then normalized by converting to snake_case. Note that because of this, `MyCoolName` would
 /// collide with `my_cool_name`, resulting in a compiler error if these items are being
-/// exported from the same crate.
+/// exported from the same module.
 ///
-/// The reason this is true of items in the same _crate_ rather than just the same _module_ is
-/// because internally `#[export_tokens]` creates a `macro_rules!` / decl macro and utilizes
-/// callbacks to communicate the underlying tokens of the foreign item to whatever external
-/// macros might request this information, and decl macro names collide on a crate-wide basis.
-/// This is why when _importing_ tokens, specifying the full path other than
-/// `my_crate::my_item` is optional, since all exported tokens can be accessed directly from
-/// the crate root.
-///
-/// A convenient further implication of this design decision is that the visibility of the
-/// module containing the item you are exporting does not interfere with the accessibility of
-/// that item's tokens. You can export the tokens of items in completely private modules
-/// without worrying about visibility.
-///
-/// Note also that some types of items, namely `syn::ItemForeignMod`, `syn::ItemUse`,
+/// Note that some types of items, namely `syn::ItemForeignMod`, `syn::ItemUse`,
 /// `syn::ItemImpl`, and `syn::Item::Verbatim`, do not have an inherent concept of a naming
 /// ident, and so for these items specifying an override name is required or you will get a
 /// compiler error. This also applies to `macro_rules!` definitions that do not specify a name.
 ///
-/// It is also possible to export tokens inside normally inaccessible scopes, such as inside a
-/// function definition, because `#[macro_export]` works even in these scenarios (and this use
-/// case is tested as part of the test suite).
+/// Note also that while you can presently _attach_ `#[export_tokens]` to anything attributes
+/// can be attached to, some of these items do not exist at the module path level, and
+/// therefore cannot be accessed. You should only attach `#[export_tokens]` to items that are
+/// accessible by path from the location where you wish to use their tokens.
 ///
 /// ## Examples
 ///
@@ -72,6 +60,9 @@ use proc_macro::TokenStream;
 ///     field: u32,
 /// }
 /// ```
+///
+/// Previously it was possible to access `#[export_tokens]` items defined in
+/// private/inaccessible contexts, however this was removed in 0.4.x.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match export_tokens_internal(attr, tokens, true) {
@@ -110,6 +101,8 @@ pub fn export_tokens_alias(tokens: TokenStream) -> TokenStream {
 
 /// Like [`#[export_tokens]`](`macro@export_tokens`) but intead creates an alias for
 /// [`#[export_tokens_no_emit]`](`macro@export_tokens_no_emit`)
+///
+/// Can only be used within a proc macro crate.
 #[proc_macro]
 pub fn export_tokens_alias_no_emit(tokens: TokenStream) -> TokenStream {
     match export_tokens_alias_internal(tokens, false) {
@@ -127,12 +120,8 @@ pub fn export_tokens_alias_no_emit(tokens: TokenStream) -> TokenStream {
 /// Note that the referenced item _must_ have the [`#[export_tokens]`][`macro@export_tokens`]
 /// attribute attached to it, or this will not work.
 ///
-/// This macro can be used in item contexts, and is also safe in expr contexts as long as both
-/// arguments passed are idents rather than paths (can't contain `::`). This is an unfortunate
-/// side effect of how decl macros are implemented in Rust
-///
-/// There is also an optional third argument called "extra" which allows you to forward string
-/// literal data to the target macro. This is used by
+/// There is also an optional third argument called "extra" which allows you to forward
+/// arbitrary data to the target macro. This is used by
 /// [`#[import_tokens_attr]`](`macro@import_tokens_proc`) to pass the tokens for the attached
 /// item in addition to the tokens for the external item.
 ///
@@ -161,6 +150,10 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 /// [`#[export_tokens]`][`macro@export_tokens`] whose path is already known at compile-time
 /// without having to do any additional parsing.
 ///
+/// If the path of the item is defined by the downstream programmer and is not "hard-coded",
+/// then you should instead use [`#[import_tokens_attr]`](`macro@import_tokens_attr`) /
+/// [`#[import_tokens_proc]`](`macro@import_tokens_proc`).
+///
 /// The macro lets you define as its argument a let variable declaration that will expand to
 /// that variable being set to the tokens of the specified external item at compile-time.
 ///
@@ -183,10 +176,6 @@ pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
 ///
 /// That said, this can be quite useful for scenarios where for whatever reason you have an
 /// item with a set-in-stone path whose tokens you need to access at compile time.
-///
-/// For more powerful importing capabilities, see [`macro@import_tokens_proc`] and
-/// [`macro@import_tokens_attr`], which are capable of importing items based on a path that has
-/// been pased to a regular proc macro or as the argument to an attribute proc macro.
 #[proc_macro]
 pub fn import_tokens(tokens: TokenStream) -> TokenStream {
     match import_tokens_internal(tokens) {
@@ -221,11 +210,35 @@ pub fn import_tokens(tokens: TokenStream) -> TokenStream {
 /// In this case the `tokens` variable will contain the tokens for the `some_crate::some_item`
 /// item, as long as it has been marked with [`#[export_tokens]`][`macro@export_tokens`].
 ///
-/// Can only be used within a proc macro crate.
+/// Note that this attribute can only be used within a proc macro crate.
 ///
-/// Note that you can provide a module path as an optional argument to this attribute macro and
-/// that path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code
-/// generated by this attribute.
+/// ## Overriding [`MACRO_MAGIC_ROOT`]:
+///
+/// You can also provide a module path as an optional argument to this attribute macro and that
+/// path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code
+/// generated by this attribute. Instead of a `Path`, you are also free to provide any `Expr`
+/// that evaluates to something compatible with [`Into<String>`] so you can dynamically
+/// generate this path based on `format!` and other string manipulation machinery, if
+/// necessary.
+///
+/// Here is an example of providing a `Path` as the override for [`MACRO_MAGIC_ROOT`]:
+///
+/// ```ignore
+/// #[import_tokens_proc(my_crate::__private::macro_magic)]
+/// pub fn my_macro(tokens: TokenStream) -> TokenStream {
+///     // ..
+/// }
+/// ```
+///
+/// and here is an example of providing an [`Into<String>`]-compatible `Expr` as the override
+/// for [`MACRO_MAGIC_ROOT`]:
+///
+/// ```ignore
+/// #[import_tokens_proc(format!("{}::__private::macro_magic", generate_crate_access_2018("my_crate")))]
+/// pub fn my_macro(tokens: TokenStream) -> TokenStream {
+///     // ..
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_proc_internal(attr, tokens) {
@@ -238,9 +251,9 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// the external item referred to by the path provided as the `attr` / first argument to the
 /// attribute macro.
 ///
-/// For this to work, the item whose path is provided as the `attr` / first argument _must_
-/// have the [`#[export_tokens]`][`macro@export_tokens`] attribute attached to it, or this will
-/// not work.
+/// The item whose path is provided as the `attr` / first argument _must_ have the
+/// [`#[export_tokens]`][`macro@export_tokens`] attribute attached to it, or this will not
+/// work.
 ///
 /// For example:
 ///
@@ -267,26 +280,39 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// `path::to::AnItem` item, and the `attached_item` variable having the parsed tokens of the
 /// item the attribute is attached to (`my_mod`) as usual.
 ///
-/// This allows to to create extremely powerful attribute macros that take in an export tokens
-/// path as their `attr` and internally receive the tokens for that external item. For example
-/// you could write an attribute macro that combines two modules or two structs together, among
-/// many other things.
+/// This allows for the creation of extremely powerful attribute macros that take in an export
+/// tokens path as their `attr` and internally receive the tokens for that external item. For
+/// example you could write an attribute macro that combines two modules or two structs
+/// together, among many other things. Custom parsing, covered below, makes these capabilities
+/// even more powerful.
 ///
+/// ## Overriding [`MACRO_MAGIC_ROOT`]
 ///
-/// ## Notes
+/// You can also provide a module path as an optional argument to this attribute macro and that
+/// path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code
+/// generated by this attribute. Instead of a `Path`, you are also free to provide any `Expr`
+/// that evaluates to something compatible with [`Into<String>`] so you can dynamically
+/// generate this path based on `format!` and other string manipulation machinery, if
+/// necessary.
 ///
-/// See `tests.rs` for more examples.
+/// Here is an example of providing a `Path` as the override for [`MACRO_MAGIC_ROOT`]:
 ///
-/// Can only be used within a proc macro crate.
+/// ```ignore
+/// #[import_tokens_attr(my_crate::__private::macro_magic)]
+/// pub fn my_macro(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+///     // ..
+/// }
+/// ```
 ///
-/// A handy `__source_path: TokenStream` variable is also injected into your proc macro
-/// function definition which provides access to the original `syn::Path` that was provided as
-/// the path for the foreign item before its tokens were imported. You can access this directly
-/// simply by referring to `__source_path`. This should parse to a `syn::Path`.
+/// and here is an example of providing an [`Into<String>`]-compatible `Expr` as the override
+/// for [`MACRO_MAGIC_ROOT`]:
 ///
-/// Note that you can provide a module path as an optional argument to this attribute macro and
-/// that path will be used as the override for [`MACRO_MAGIC_ROOT`] within the context of code
-/// generated by this attribute.
+/// ```ignore
+/// #[import_tokens_proc(format!("{}::__private::macro_magic", generate_crate_access_2018("my_crate")))]
+/// pub fn my_macro(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+///     // ..
+/// }
+/// ```
 ///
 ///
 /// ## Optional Feature: `#[with_custom_parsing(..)]`
@@ -347,6 +373,18 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 /// This is just an example, you could implement the parsing any way you want, maybe even using
 /// something that isn't initially a `syn::Path` but is transformed into one. The possibilities
 /// are endless.
+///
+/// ## Notes
+///
+/// * See `tests.rs` for more examples.
+/// * Can only be used within a proc macro crate.
+/// * A handy `__source_path: TokenStream` variable is also injected into your proc macro
+///   function definition which provides access to the original `syn::Path` that was provided
+///   as the path for the foreign item before its tokens were imported. You can access this
+///   directly simply by referring to `__source_path`. This should parse to a `syn::Path`.
+/// * When using the custom parsing feature, you can also access the original tokens for the
+///   input attribute within your proc macro body using the magic variable `__custom_tokens`.
+///   For more information and an example see [`macro@with_custom_parsing`].
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     match import_tokens_attr_internal(attr, tokens) {

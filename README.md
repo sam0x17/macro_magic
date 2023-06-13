@@ -14,7 +14,8 @@ them by name/path.
 
 Among other things, the patterns introduced by `macro_magic` can be used to implement safe and
 efficient exportation and importation of item tokens within the same file, and even across file
-and crate boundaries.
+and crate boundaries. The only requirement is that you have control over (i.e. can add an attribute
+macro to) the source code of both locations.
 
 `macro_magic` is designed to work with stable Rust, and is fully `no_std` compatible (in fact,
 there is a unit test to ensure everything is `no_std` safe).
@@ -230,18 +231,33 @@ errors complaining about items not existing under `macro_magic::mm_core`. The
 use it without enabling this feature.
 
 The reason for this feature gating is that things like `syn`, `quote`, `proc_macro2`, etc., are
-not 100% `no_std` compatible and should only be enabled in proc macro crates
+not 100% `no_std` compatible and should only be enabled in proc macro crates. For this reason,
+you _should not_ enable this feature in crates where you are merely using `#[export_tokens]`
+and nothing else within that crate.
 
 ## Limitations
 
 One thing that `macro_magic` _doesn't_ provide is the ability to build up state information
 across multiple macro invocations, however this problem can be tackled effectively using the
-[outer macro pattern](https://www.youtube.com/watch?v=aEWbZxNCH0A). There is also my
-(deprecated but functional) [macro_state](https://crates.io/crates/macro_state) crate, which
-relies on some incidental features of the rust compiler that could be removed in the future.
+[outer macro pattern](https://www.youtube.com/watch?v=aEWbZxNCH0A) or in some cases using
+static atomics and mutexes in your proc macro crate (which we actually do in this crate to keep
+track of unique identifiers).
 
-Note that the transition from 0.1.7 to 0.2.0 of `macro_magic` removed and/or re-wrote a number
-of features that relied on a non-future-proof behavior of writing/reading files from the
-`OUT_DIR`. Versions of `macro_magic` >= 0.2.0 are completely future-proof and safe, however
-features that provided the ability to enumerate all the `#[export_tokens]` calls in a namespace
-have been removed. The proper way to do this is with the outer macro pattern, mentioned above.
+## Breaking Changes
+
+- **0.4x** removed `#[use_attr]` and `#[use_proc]` (they are no longer needed with the new
+  self-calling macro style that has been adopted in 0.4x) and also removed the ability to
+  access `#[export_tokens]` invocations in inaccessible locations like inside of functions and
+  across module permission boundaries like in an inaccessible private module. This feature may
+  be re-added in the future if there is interest, however removing it allowed us to consolidate
+  naming of our `macro_rules!` declarations and remove the need for `#[use_attr]` /
+  `#[use_proc]`.
+- **0.2x** removed and/or re-wrote a number of features that relied on a non-future-proof
+  behavior of writing/reading files in the `OUT_DIR`. Versions >= 0.2.0 are completely safe and
+  no longer contain this behavior, however features that provided the ability to enumerate all
+  the `#[export_tokens]` calls in a namespace have been removed. The proper way to do this is
+  with the outer macro pattern or with global state mutexes/atomics in your proc macro crate,
+  as mentioned above.
+
+More detailed historical change information can be found in
+[releases](https://github.com/sam0x17/docify/releases).

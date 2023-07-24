@@ -5,6 +5,7 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use const_random::const_random;
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
@@ -25,6 +26,12 @@ pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
 
 /// A global counter, can be used to generate a relatively unique identifier.
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+/// A compile-time random value used to help prevent collisions between hidden
+/// `__export_tokens_*` idents created by different crates and imported by glob imports into
+/// the same module/scope. Each instance of `macro_magic` will get a random compile-time
+/// [`u32`].
+const COMPILATION_TAG: u32 = const_random!(u32);
 
 /// Private module containing custom keywords used for parsing in this crate
 mod keywords {
@@ -434,12 +441,8 @@ pub fn export_tokens_macro_path(item_path: &Path) -> Path {
 /// Generates a new unique `#[export_tokens]` macro identifier
 fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
     let unique_id = COUNTER.fetch_add(1, Ordering::SeqCst);
-    let ident = flatten_ident(ident);
-    let ident_string = format!(
-        "__export_tokens_tt_{}_{}",
-        ident.to_token_stream().to_string(),
-        unique_id
-    );
+    let ident = flatten_ident(ident).to_token_stream().to_string();
+    let ident_string = format!("__export_tokens_tt_{COMPILATION_TAG}_{ident}_{unique_id}");
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 

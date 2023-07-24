@@ -16,6 +16,7 @@ syn = { version = "2", features = ["full"] }
 derive-syn-parse = "0.1.5"
 proc-macro2 = "1"
 macro_magic_core_macros = { version = "0.4.1", path = "../core_macros" }
+const-random = "0.1.15"
 
 [features]
 default = []

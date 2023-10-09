@@ -395,7 +395,15 @@ pub fn import_tokens_proc(attr: TokenStream, tokens: TokenStream) -> TokenStream
 ///   For more information and an example see [`macro@with_custom_parsing`].
 #[proc_macro_attribute]
 pub fn import_tokens_attr(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match import_tokens_attr_internal(attr, tokens) {
+    match import_tokens_attr_internal(attr, tokens, true) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn import_tokens_attr_verbatim(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    match import_tokens_attr_internal(attr, tokens, false) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }

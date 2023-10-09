@@ -81,7 +81,7 @@ pub use macro_magic_macros::{
 
 #[cfg(feature = "proc_support")]
 pub use macro_magic_macros::{
-    import_tokens, import_tokens_attr, import_tokens_proc, with_custom_parsing,
+    import_tokens, import_tokens_attr, import_tokens_attr_verbatim, import_tokens_proc, with_custom_parsing,
 };
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support

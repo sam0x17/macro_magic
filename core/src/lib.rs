@@ -777,6 +777,7 @@ impl ToTokens for OverridePath {
 pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,
+    hidden_source_path: bool,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
     let mm_override_path = parse2::<OverridePath>(attr)?;
@@ -873,18 +874,33 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(res) => res,
                     Err(err) => return err.to_compile_error().into()
                 };
-                quote::quote! {
-                    #pound resolved_mm_override_path::forward_tokens_verbatim! {
-                        #pound path,
-                        #orig_sig_ident,
-                        #pound resolved_mm_override_path,
-                        {
-                            { #pound attached_item },
-                            { #pound path },
-                            { #pound custom_parsed }
+                if #hidden_source_path {
+                    quote::quote! {
+                        #pound resolved_mm_override_path::forward_tokens! {
+                            #pound path,
+                            #orig_sig_ident,
+                            #pound resolved_mm_override_path,
+                            {
+                                { #pound attached_item },
+                                { #pound path },
+                                { #pound custom_parsed }
+                            }
                         }
-                    }
-                }.into()
+                    }.into()
+                } else {
+                    quote::quote! {
+                        #pound resolved_mm_override_path::forward_tokens_verbatim! {
+                            #pound path,
+                            #orig_sig_ident,
+                            #pound resolved_mm_override_path,
+                            {
+                                { #pound attached_item },
+                                { #pound path },
+                                { #pound custom_parsed }
+                            }
+                        }
+                    }.into()
+                }
             }
         }
     };

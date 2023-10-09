@@ -76,7 +76,7 @@ pub mod mm_core {
 }
 
 pub use macro_magic_macros::{
-    export_tokens, export_tokens_alias, export_tokens_no_emit, forward_tokens, use_attr, use_proc,
+    export_tokens, export_tokens_alias, export_tokens_no_emit, forward_tokens, forward_tokens_verbatim, use_attr, use_proc,
 };
 
 #[cfg(feature = "proc_support")]

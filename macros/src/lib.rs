@@ -65,7 +65,7 @@ use proc_macro::TokenStream;
 /// private/inaccessible contexts, however this was removed in 0.4.x.
 #[proc_macro_attribute]
 pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match export_tokens_internal(attr, tokens, true) {
+    match export_tokens_internal(attr, tokens, true, true) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -78,7 +78,7 @@ pub fn export_tokens(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// and/or do not need to be used locally.
 #[proc_macro_attribute]
 pub fn export_tokens_no_emit(attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    match export_tokens_internal(attr, tokens, false) {
+    match export_tokens_internal(attr, tokens, false, true) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -93,7 +93,7 @@ pub fn export_tokens_no_emit(attr: TokenStream, tokens: TokenStream) -> TokenStr
 /// Can only be used within a proc macro crate.
 #[proc_macro]
 pub fn export_tokens_alias(tokens: TokenStream) -> TokenStream {
-    match export_tokens_alias_internal(tokens, true) {
+    match export_tokens_alias_internal(tokens, true, true) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -105,7 +105,7 @@ pub fn export_tokens_alias(tokens: TokenStream) -> TokenStream {
 /// Can only be used within a proc macro crate.
 #[proc_macro]
 pub fn export_tokens_alias_no_emit(tokens: TokenStream) -> TokenStream {
-    match export_tokens_alias_internal(tokens, false) {
+    match export_tokens_alias_internal(tokens, false, true) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
@@ -140,7 +140,15 @@ pub fn export_tokens_alias_no_emit(tokens: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro]
 pub fn forward_tokens(tokens: TokenStream) -> TokenStream {
-    match forward_tokens_internal(tokens) {
+    match forward_tokens_internal(tokens, true) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn forward_tokens_verbatim(tokens: TokenStream) -> TokenStream {
+    match forward_tokens_internal(tokens, false) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }

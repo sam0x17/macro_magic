@@ -76,12 +76,14 @@ pub mod mm_core {
 }
 
 pub use macro_magic_macros::{
-    export_tokens, export_tokens_alias, export_tokens_no_emit, forward_tokens, use_attr, use_proc,
+    export_tokens, export_tokens_alias, export_tokens_no_emit, forward_tokens,
+    forward_tokens_verbatim, use_attr, use_proc,
 };
 
 #[cfg(feature = "proc_support")]
 pub use macro_magic_macros::{
-    import_tokens, import_tokens_attr, import_tokens_proc, with_custom_parsing,
+    import_tokens, import_tokens_attr, import_tokens_attr_verbatim, import_tokens_proc,
+    with_custom_parsing,
 };
 
 /// Contains re-exports required at compile-time by the macro_magic macros and support

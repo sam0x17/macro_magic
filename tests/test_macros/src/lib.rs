@@ -266,14 +266,18 @@ pub fn combine_structs(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let Fields::Named(local_fields) = local_struct.fields else {
         return Error::new(
             local_struct.fields.span(),
-            "unnamed fields are not supported"
-        ).to_compile_error().into()
+            "unnamed fields are not supported",
+        )
+        .to_compile_error()
+        .into();
     };
     let Fields::Named(foreign_fields) = foreign_struct.fields else {
         return Error::new(
             foreign_struct.fields.span(),
-            "unnamed fields are not supported"
-        ).to_compile_error().into()
+            "unnamed fields are not supported",
+        )
+        .to_compile_error()
+        .into();
     };
     let local_fields = local_fields.named.iter();
     let foreign_fields = foreign_fields.named.iter();
@@ -303,8 +307,10 @@ pub fn require(tokens: TokenStream) -> TokenStream {
         return Error::new(
             external_mod.span(),
             "cannot import tokens from a file-based module since custom file-level \
-            attributes are not yet supported by Rust"
-        ).to_compile_error().into()
+            attributes are not yet supported by Rust",
+        )
+        .to_compile_error()
+        .into();
     };
     quote! {
         #(#stmts)

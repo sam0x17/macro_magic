@@ -258,7 +258,9 @@ impl ProcMacro {
     /// Constructs a [`ProcMacro`] from anything compatible with [`TokenStream2`].
     pub fn from<T: Into<TokenStream2>>(tokens: T) -> Result<Self> {
         let proc_fn = parse2::<ItemFn>(tokens.into())?;
-        let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+        let Visibility::Public(_) = proc_fn.vis else {
+            return Err(Error::new(proc_fn.vis.span(), "Visibility must be public"));
+        };
         let mut macro_type: Option<ProcMacroType> = None;
         if proc_fn
             .attrs
@@ -431,8 +433,9 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
 /// on the item at that path, the returned macro path will be invalid.
 pub fn export_tokens_macro_path(item_path: &Path) -> Path {
     let mut macro_path = item_path.clone();
-    let Some(last_seg) = macro_path.segments.pop()
-        else { unreachable!("must have at least one segment") };
+    let Some(last_seg) = macro_path.segments.pop() else {
+        unreachable!("must have at least one segment")
+    };
     let last_seg = export_tokens_macro_ident(&last_seg.into_value().ident);
     macro_path.segments.push(last_seg.into());
     macro_path
@@ -456,10 +459,14 @@ fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
 /// all require `attr` to be specified.
 ///
 /// An empty [`TokenStream2`] is sufficient for opting out of using `attr`
+///
+/// The `hide_exported_ident` variable specifies whether the macro uses an auto-generated name
+/// via [`export_tokens_macro_ident`] or the name of the item itself.
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     attr: T,
     tokens: E,
     emit: bool,
+    hide_exported_ident: bool,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
     let item: Item = parse2(tokens.into())?;
@@ -493,7 +500,11 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let macro_ident = new_unique_export_tokens_ident(&ident);
-    let ident = export_tokens_macro_ident(&ident);
+    let ident = if hide_exported_ident {
+        export_tokens_macro_ident(&ident)
+    } else {
+        ident
+    };
     let item_emit = match emit {
         true => quote! {
             #[allow(unused)]
@@ -536,13 +547,14 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
 pub fn export_tokens_alias_internal<T: Into<TokenStream2>>(
     tokens: T,
     emit: bool,
+    hide_exported_ident: bool,
 ) -> Result<TokenStream2> {
     let alias = parse2::<Ident>(tokens.into())?;
     let export_tokens_internal_path = macro_magic_path(&quote!(mm_core::export_tokens_internal));
     Ok(quote! {
         #[proc_macro_attribute]
         pub fn #alias(attr: proc_macro::TokenStream, tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-            match #export_tokens_internal_path(attr, tokens, #emit) {
+            match #export_tokens_internal_path(attr, tokens, #emit, #hide_exported_ident) {
                 Ok(tokens) => tokens.into(),
                 Err(err) => err.to_compile_error().into(),
             }
@@ -603,13 +615,20 @@ pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<
 /// The internal implementation for the `forward_tokens` macro.
 ///
 /// You shouldn't need to call this in any circumstances but it is provided just in case.
-pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T) -> Result<TokenStream2> {
+pub fn forward_tokens_internal<T: Into<TokenStream2>>(
+    tokens: T,
+    hidden_source_path: bool,
+) -> Result<TokenStream2> {
     let args = parse2::<ForwardTokensArgs>(tokens.into())?;
     let mm_path = match args.mm_path {
         Some(path) => path,
         None => macro_magic_root(),
     };
-    let source_path = export_tokens_macro_path(&args.source);
+    let source_path = if hidden_source_path {
+        export_tokens_macro_path(&args.source)
+    } else {
+        args.source
+    };
     let target_path = args.target;
     if let Some(extra) = args.extra {
         Ok(quote! {
@@ -775,6 +794,7 @@ impl ToTokens for OverridePath {
 pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2>>(
     attr: T1,
     tokens: T2,
+    hidden_source_path: bool,
 ) -> Result<TokenStream2> {
     let attr = attr.into();
     let mm_override_path = parse2::<OverridePath>(attr)?;
@@ -871,18 +891,33 @@ pub fn import_tokens_attr_internal<T1: Into<TokenStream2>, T2: Into<TokenStream2
                     Ok(res) => res,
                     Err(err) => return err.to_compile_error().into()
                 };
-                quote::quote! {
-                    #pound resolved_mm_override_path::forward_tokens! {
-                        #pound path,
-                        #orig_sig_ident,
-                        #pound resolved_mm_override_path,
-                        {
-                            { #pound attached_item },
-                            { #pound path },
-                            { #pound custom_parsed }
+                if #hidden_source_path {
+                    quote::quote! {
+                        #pound resolved_mm_override_path::forward_tokens! {
+                            #pound path,
+                            #orig_sig_ident,
+                            #pound resolved_mm_override_path,
+                            {
+                                { #pound attached_item },
+                                { #pound path },
+                                { #pound custom_parsed }
+                            }
                         }
-                    }
-                }.into()
+                    }.into()
+                } else {
+                    quote::quote! {
+                        #pound resolved_mm_override_path::forward_tokens_verbatim! {
+                            #pound path,
+                            #orig_sig_ident,
+                            #pound resolved_mm_override_path,
+                            {
+                                { #pound attached_item },
+                                { #pound path },
+                                { #pound custom_parsed }
+                            }
+                        }
+                    }.into()
+                }
             }
         }
     };
@@ -981,7 +1016,8 @@ mod tests {
     #[test]
     fn export_tokens_internal_missing_ident() {
         assert!(
-            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true).is_err()
+            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true, true)
+                .is_err()
         );
     }
 
@@ -992,6 +1028,7 @@ mod tests {
             quote!(
                 struct MyStruct {}
             ),
+            true,
             true
         )
         .unwrap()
@@ -1007,6 +1044,7 @@ mod tests {
                 struct Something {}
             ),
             true,
+            true
         )
         .unwrap()
         .to_string()
@@ -1021,6 +1059,7 @@ mod tests {
                 struct MyStruct<T> {}
             ),
             true,
+            true
         )
         .unwrap()
         .to_string()
@@ -1035,6 +1074,7 @@ mod tests {
                 struct MyStruct {}
             ),
             true,
+            true
         )
         .is_err());
         assert!(export_tokens_internal(
@@ -1043,6 +1083,7 @@ mod tests {
                 struct MyStruct {}
             ),
             true,
+            true
         )
         .is_err());
     }
@@ -1055,10 +1096,26 @@ mod tests {
                 struct Something {}
             ),
             false,
+            true
         )
         .unwrap()
         .to_string()
         .contains("some_name"));
+    }
+
+    #[test]
+    fn export_tokens_internal_verbatim_ident() {
+        assert!(export_tokens_internal(
+            quote!(),
+            quote!(
+                struct MyStruct<T> {}
+            ),
+            true,
+            false
+        )
+        .unwrap()
+        .to_string()
+        .contains("MyStruct"));
     }
 
     #[test]

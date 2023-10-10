@@ -999,7 +999,7 @@ mod tests {
     #[test]
     fn export_tokens_internal_missing_ident() {
         assert!(
-            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true).is_err()
+            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true, true).is_err()
         );
     }
 
@@ -1010,6 +1010,7 @@ mod tests {
             quote!(
                 struct MyStruct {}
             ),
+            true,
             true
         )
         .unwrap()
@@ -1025,6 +1026,7 @@ mod tests {
                 struct Something {}
             ),
             true,
+            true
         )
         .unwrap()
         .to_string()
@@ -1039,6 +1041,7 @@ mod tests {
                 struct MyStruct<T> {}
             ),
             true,
+            true
         )
         .unwrap()
         .to_string()
@@ -1053,6 +1056,7 @@ mod tests {
                 struct MyStruct {}
             ),
             true,
+            true
         )
         .is_err());
         assert!(export_tokens_internal(
@@ -1061,6 +1065,7 @@ mod tests {
                 struct MyStruct {}
             ),
             true,
+            true
         )
         .is_err());
     }
@@ -1073,10 +1078,26 @@ mod tests {
                 struct Something {}
             ),
             false,
+            true
         )
         .unwrap()
         .to_string()
         .contains("some_name"));
+    }
+
+    #[test]
+    fn export_tokens_internal_verbatim_ident() {
+        assert!(export_tokens_internal(
+            quote!(),
+            quote!(
+                struct MyStruct<T> {}
+            ),
+            true,
+            false
+        )
+        .unwrap()
+        .to_string()
+        .contains("MyStruct"));
     }
 
     #[test]

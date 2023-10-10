@@ -1,6 +1,6 @@
 [package]
 name = "macro_magic_core"
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 description = "Core implementation behind macro_magic"
 repository = "https://github.com/sam0x17/macro_magic"
@@ -15,7 +15,7 @@ quote = "1"
 syn = { version = "2", features = ["full"] }
 derive-syn-parse = "0.1.5"
 proc-macro2 = "1"
-macro_magic_core_macros = { version = "0.4.3", path = "../core_macros" }
+macro_magic_core_macros = { version = "0.5.0", path = "../core_macros" }
 const-random = "0.1.15"
 
 [features]

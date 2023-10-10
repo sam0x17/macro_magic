@@ -459,6 +459,9 @@ fn new_unique_export_tokens_ident(ident: &Ident) -> Ident {
 /// all require `attr` to be specified.
 ///
 /// An empty [`TokenStream2`] is sufficient for opting out of using `attr`
+///
+/// The `hide_exported_ident` variable specifies whether the macro uses an auto-generated name
+/// via [`export_tokens_macro_ident`] or the name of the item itself.
 pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     attr: T,
     tokens: E,

@@ -258,7 +258,9 @@ impl ProcMacro {
     /// Constructs a [`ProcMacro`] from anything compatible with [`TokenStream2`].
     pub fn from<T: Into<TokenStream2>>(tokens: T) -> Result<Self> {
         let proc_fn = parse2::<ItemFn>(tokens.into())?;
-        let Visibility::Public(_) = proc_fn.vis else { return Err(Error::new(proc_fn.vis.span(), "Visibility must be public")) };
+        let Visibility::Public(_) = proc_fn.vis else {
+            return Err(Error::new(proc_fn.vis.span(), "Visibility must be public"));
+        };
         let mut macro_type: Option<ProcMacroType> = None;
         if proc_fn
             .attrs
@@ -431,8 +433,9 @@ pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
 /// on the item at that path, the returned macro path will be invalid.
 pub fn export_tokens_macro_path(item_path: &Path) -> Path {
     let mut macro_path = item_path.clone();
-    let Some(last_seg) = macro_path.segments.pop()
-        else { unreachable!("must have at least one segment") };
+    let Some(last_seg) = macro_path.segments.pop() else {
+        unreachable!("must have at least one segment")
+    };
     let last_seg = export_tokens_macro_ident(&last_seg.into_value().ident);
     macro_path.segments.push(last_seg.into());
     macro_path
@@ -494,7 +497,11 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
         None => parse2::<Ident>(attr)?,
     };
     let macro_ident = new_unique_export_tokens_ident(&ident);
-    let ident = if hide_exported_ident { export_tokens_macro_ident(&ident) } else { ident };
+    let ident = if hide_exported_ident {
+        export_tokens_macro_ident(&ident)
+    } else {
+        ident
+    };
     let item_emit = match emit {
         true => quote! {
             #[allow(unused)]
@@ -605,13 +612,20 @@ pub fn import_tokens_inner_internal<T: Into<TokenStream2>>(tokens: T) -> Result<
 /// The internal implementation for the `forward_tokens` macro.
 ///
 /// You shouldn't need to call this in any circumstances but it is provided just in case.
-pub fn forward_tokens_internal<T: Into<TokenStream2>>(tokens: T, hidden_source_path: bool) -> Result<TokenStream2> {
+pub fn forward_tokens_internal<T: Into<TokenStream2>>(
+    tokens: T,
+    hidden_source_path: bool,
+) -> Result<TokenStream2> {
     let args = parse2::<ForwardTokensArgs>(tokens.into())?;
     let mm_path = match args.mm_path {
         Some(path) => path,
         None => macro_magic_root(),
     };
-    let source_path = if hidden_source_path { export_tokens_macro_path(&args.source) } else { args.source };
+    let source_path = if hidden_source_path {
+        export_tokens_macro_path(&args.source)
+    } else {
+        args.source
+    };
     let target_path = args.target;
     if let Some(extra) = args.extra {
         Ok(quote! {
@@ -999,7 +1013,8 @@ mod tests {
     #[test]
     fn export_tokens_internal_missing_ident() {
         assert!(
-            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true, true).is_err()
+            export_tokens_internal(quote!(), quote!(impl MyTrait for Something), true, true)
+                .is_err()
         );
     }
 

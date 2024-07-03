@@ -10,6 +10,6 @@ proc-macro = true
 [dependencies]
 macro_magic = { path = "../../", features = ["proc_support"] }
 syn = { version = "2", features = ["full"] }
-quote.workspace = "1"
+quote = "1"
 proc-macro2 = "1"
 derive-syn-parse = "0.2.0"

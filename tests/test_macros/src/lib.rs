@@ -105,7 +105,7 @@ pub fn test_tokens_attr1(attr: TokenStream, tokens: TokenStream) -> TokenStream 
     assert_eq!(imported_item_str, "struct AnotherStruct { field1 : u32, }");
     assert_eq!(
         attached_item_str,
-        "pub mod hunter { pub fn stuff() { println! (\"things\") ; } }"
+        "pub mod hunter { pub fn stuff() { println! (\"things\"); } }"
     );
     quote! {
         #attached_item

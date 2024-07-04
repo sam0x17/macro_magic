@@ -22,7 +22,7 @@ use syn::{
 /// generated macro code.
 ///
 /// See also [`get_macro_magic_root`].
-pub const MACRO_MAGIC_ROOT: &'static str = get_macro_magic_root!();
+pub const MACRO_MAGIC_ROOT: &str = get_macro_magic_root!();
 
 /// A global counter, can be used to generate a relatively unique identifier.
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -371,8 +371,8 @@ pub fn macro_magic_path<T: Into<TokenStream2> + Clone>(subpath: &T) -> Path {
 /// Returns the specified string in snake_case
 pub fn to_snake_case(input: impl Into<String>) -> String {
     let input: String = input.into();
-    if input.len() == 0 {
-        return input.into();
+    if input.is_empty() {
+        return input;
     }
     let mut prev_lower = input.chars().next().unwrap().is_lowercase();
     let mut prev_whitespace = true;
@@ -423,7 +423,7 @@ pub fn flatten_ident(ident: &Ident) -> Ident {
 /// Used by [`export_tokens_internal`] and several other functions.
 pub fn export_tokens_macro_ident(ident: &Ident) -> Ident {
     let ident = flatten_ident(ident);
-    let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream().to_string());
+    let ident_string = format!("__export_tokens_tt_{}", ident.to_token_stream());
     Ident::new(ident_string.as_str(), Span::call_site())
 }
 
@@ -491,7 +491,7 @@ pub fn export_tokens_internal<T: Into<TokenStream2>, E: Into<TokenStream2>>(
     };
     let ident = match ident {
         Some(ident) => {
-            if let Ok(_) = parse2::<Nothing>(attr.clone()) {
+            if parse2::<Nothing>(attr.clone()).is_ok() {
                 ident
             } else {
                 parse2::<Ident>(attr)?

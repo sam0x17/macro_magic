@@ -1,4 +1,5 @@
 #![no_std] // test that `#[export_tokens]` works with `no_std`
+#![allow(unused)]
 
 use macro_magic::*;
 

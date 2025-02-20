@@ -1,9 +1,9 @@
 use derive_syn_parse::Parse;
 use macro_magic::{mm_core::ForeignPath, *};
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse_macro_input, spanned::Spanned, Error, Fields, Ident, Item, ItemMod, ItemStruct, Path,
+    Error, Fields, Ident, Item, ItemMod, ItemStruct, Path, parse_macro_input, spanned::Spanned,
 };
 
 /// An example proc macro built on top of `import_tokens_internal`.

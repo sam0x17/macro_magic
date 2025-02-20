@@ -9,13 +9,13 @@ use const_random::const_random;
 use derive_syn_parse::Parse;
 use macro_magic_core_macros::*;
 use proc_macro2::{Delimiter, Group, Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
-use quote::{format_ident, quote, ToTokens, TokenStreamExt};
+use quote::{ToTokens, TokenStreamExt, format_ident, quote};
 use syn::{
+    Attribute, Error, Expr, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
     parse::{Nothing, ParseStream},
-    parse2, parse_quote,
+    parse_quote, parse2,
     spanned::Spanned,
     token::{Brace, Comma},
-    Attribute, Error, Expr, FnArg, Ident, Item, ItemFn, Pat, Path, Result, Token, Visibility,
 };
 
 /// Constant used to load the configured location for `macro_magic` that will be used in
@@ -1023,99 +1023,113 @@ mod tests {
 
     #[test]
     fn export_tokens_internal_normal_no_ident() {
-        assert!(export_tokens_internal(
-            quote!(),
-            quote!(
-                struct MyStruct {}
-            ),
-            true,
-            true
-        )
-        .unwrap()
-        .to_string()
-        .contains("my_struct"));
+        assert!(
+            export_tokens_internal(
+                quote!(),
+                quote!(
+                    struct MyStruct {}
+                ),
+                true,
+                true
+            )
+            .unwrap()
+            .to_string()
+            .contains("my_struct")
+        );
     }
 
     #[test]
     fn export_tokens_internal_normal_ident() {
-        assert!(export_tokens_internal(
-            quote!(some_name),
-            quote!(
-                struct Something {}
-            ),
-            true,
-            true
-        )
-        .unwrap()
-        .to_string()
-        .contains("some_name"));
+        assert!(
+            export_tokens_internal(
+                quote!(some_name),
+                quote!(
+                    struct Something {}
+                ),
+                true,
+                true
+            )
+            .unwrap()
+            .to_string()
+            .contains("some_name")
+        );
     }
 
     #[test]
     fn export_tokens_internal_generics_no_ident() {
-        assert!(export_tokens_internal(
-            quote!(),
-            quote!(
-                struct MyStruct<T> {}
-            ),
-            true,
-            true
-        )
-        .unwrap()
-        .to_string()
-        .contains("__export_tokens_tt_my_struct"));
+        assert!(
+            export_tokens_internal(
+                quote!(),
+                quote!(
+                    struct MyStruct<T> {}
+                ),
+                true,
+                true
+            )
+            .unwrap()
+            .to_string()
+            .contains("__export_tokens_tt_my_struct")
+        );
     }
 
     #[test]
     fn export_tokens_internal_bad_ident() {
-        assert!(export_tokens_internal(
-            quote!(Something<T>),
-            quote!(
-                struct MyStruct {}
-            ),
-            true,
-            true
-        )
-        .is_err());
-        assert!(export_tokens_internal(
-            quote!(some::path),
-            quote!(
-                struct MyStruct {}
-            ),
-            true,
-            true
-        )
-        .is_err());
+        assert!(
+            export_tokens_internal(
+                quote!(Something<T>),
+                quote!(
+                    struct MyStruct {}
+                ),
+                true,
+                true
+            )
+            .is_err()
+        );
+        assert!(
+            export_tokens_internal(
+                quote!(some::path),
+                quote!(
+                    struct MyStruct {}
+                ),
+                true,
+                true
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn test_export_tokens_no_emit() {
-        assert!(export_tokens_internal(
-            quote!(some_name),
-            quote!(
-                struct Something {}
-            ),
-            false,
-            true
-        )
-        .unwrap()
-        .to_string()
-        .contains("some_name"));
+        assert!(
+            export_tokens_internal(
+                quote!(some_name),
+                quote!(
+                    struct Something {}
+                ),
+                false,
+                true
+            )
+            .unwrap()
+            .to_string()
+            .contains("some_name")
+        );
     }
 
     #[test]
     fn export_tokens_internal_verbatim_ident() {
-        assert!(export_tokens_internal(
-            quote!(),
-            quote!(
-                struct MyStruct<T> {}
-            ),
-            true,
-            false
-        )
-        .unwrap()
-        .to_string()
-        .contains("MyStruct"));
+        assert!(
+            export_tokens_internal(
+                quote!(),
+                quote!(
+                    struct MyStruct<T> {}
+                ),
+                true,
+                false
+            )
+            .unwrap()
+            .to_string()
+            .contains("MyStruct")
+        );
     }
 
     #[test]
@@ -1130,12 +1144,12 @@ mod tests {
 
     #[test]
     fn import_tokens_internal_flatten_long_paths() {
-        assert!(import_tokens_internal(
-            quote!(let tokens = my_crate::some_mod::complex::SomethingElse)
-        )
-        .unwrap()
-        .to_string()
-        .contains("__export_tokens_tt_something_else"));
+        assert!(
+            import_tokens_internal(quote!(let tokens = my_crate::some_mod::complex::SomethingElse))
+                .unwrap()
+                .to_string()
+                .contains("__export_tokens_tt_something_else")
+        );
     }
 
     #[test]
@@ -1150,56 +1164,64 @@ mod tests {
 
     #[test]
     fn import_tokens_inner_internal_basic() {
-        assert!(import_tokens_inner_internal(quote! {
-            my_ident,
-            fn my_function() -> u32 {
-                33
-            }
-        })
-        .unwrap()
-        .to_string()
-        .contains("my_ident"));
+        assert!(
+            import_tokens_inner_internal(quote! {
+                my_ident,
+                fn my_function() -> u32 {
+                    33
+                }
+            })
+            .unwrap()
+            .to_string()
+            .contains("my_ident")
+        );
     }
 
     #[test]
     fn import_tokens_inner_internal_impl() {
-        assert!(import_tokens_inner_internal(quote! {
-            another_ident,
-            impl Something for MyThing {
-                fn something() -> CoolStuff {
-                    CoolStuff {}
-                }
-            }
-        })
-        .unwrap()
-        .to_string()
-        .contains("something ()"));
-    }
-
-    #[test]
-    fn import_tokens_inner_internal_missing_comma() {
-        assert!(import_tokens_inner_internal(quote! {
-            {
-                another_ident
+        assert!(
+            import_tokens_inner_internal(quote! {
+                another_ident,
                 impl Something for MyThing {
                     fn something() -> CoolStuff {
                         CoolStuff {}
                     }
                 }
-            }
-        })
-        .is_err());
+            })
+            .unwrap()
+            .to_string()
+            .contains("something ()")
+        );
+    }
+
+    #[test]
+    fn import_tokens_inner_internal_missing_comma() {
+        assert!(
+            import_tokens_inner_internal(quote! {
+                {
+                    another_ident
+                    impl Something for MyThing {
+                        fn something() -> CoolStuff {
+                            CoolStuff {}
+                        }
+                    }
+                }
+            })
+            .is_err()
+        );
     }
 
     #[test]
     fn import_tokens_inner_internal_non_item() {
-        assert!(import_tokens_inner_internal(quote! {
-            {
-                another_ident,
-                2 + 2
-            }
-        })
-        .is_err());
+        assert!(
+            import_tokens_inner_internal(quote! {
+                {
+                    another_ident,
+                    2 + 2
+                }
+            })
+            .is_err()
+        );
     }
 
     #[test]

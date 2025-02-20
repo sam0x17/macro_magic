@@ -126,15 +126,15 @@ fn attr_direct_import() {
     assert_eq!(an_external_function(4), 37);
 }
 
+#[macro_export]
+macro_rules! receiver {
+    (__private_macro_magic_tokens_forwarded $tokens:item) => {
+        stringify!($tokens)
+    };
+}
+
 #[test]
 fn test_forward_tokens() {
-    #[macro_export]
-    macro_rules! receiver {
-        (__private_macro_magic_tokens_forwarded $tokens:item) => {
-            stringify!($tokens)
-        };
-    }
-
     let result = forward_tokens!(LionStruct, receiver);
     assert_eq!(result, "struct LionStruct {}");
 }

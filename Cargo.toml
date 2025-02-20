@@ -12,7 +12,7 @@ members = [
 [package]
 name = "macro_magic"
 version = "0.5.1"
-edition = "2021"
+edition = "2024"
 authors = ["sam0x17"]
 license = "MIT"
 keywords = ["macro", "macros", "proc-macro", "proc-macros", "magic"]
